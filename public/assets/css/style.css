@@ -1,0 +1,11 @@
+@font-face {
+    font-family: 'DesySansOfficeCn-Regular';
+    src: url('../fonts/DesySansOfficeCn-Regular.ttf') format('truetype');
+}
+
+html {
+    color: #ffffff;
+    font-family: 'DesySansOfficeCn-Regular', sans-serif;
+    margin: 0;
+    padding: 0;
+}
