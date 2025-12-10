@@ -1,35 +1,28 @@
 {
-  "name": "adsb-dump1090",
+  "name": "desy-adsb",
   "version": "1.0.0",
-  "description": "ADSB DUMP1090 System, with Frontend powerd by API",
-  "keywords": [
-    "ADSB",
-    "DUMP1090",
-    "SDR",
-    "RTL",
-    "RTL-SDR",
-    "ADS-B"
-  ],
-  "license": "MIT",
-  "author": "Florian Linde (DESY)",
-  "type": "commonjs",
+  "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "nodemon index.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
+  "keywords": [],
+  "author": "Florian Linde (DESY IT)",
+  "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
-    "cookie-parser": "^1.4.7",
-    "dotenv": "^17.2.3",
-    "ejs": "^3.1.10",
+    "axios": "^1.13.2",
+    "chart.js": "^4.5.1",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "date-fns": "^4.1.0",
     "express": "^5.1.0",
-    "filebay-dump1090": "^1.0.0",
-    "fs": "^0.0.1-security",
-    "install": "^0.13.0",
-    "node-fetch": "^2.7.0",
-    "path": "^0.12.7",
-    "ws": "^8.18.3"
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "prettier": "^3.7.4"
   }
 }

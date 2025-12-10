@@ -1,0 +1,6 @@
+{
+  "apiUrl": "http://131.169.137.134:8080/data/aircraft.json",
+  "prefixdb": "[DESY-ADSB DATABASE]: ",
+  "prefixexpress": "[DESY-ADSB WEBSERVE]: ",
+  "prefixconfig": "[DESY-ADSB CONFIG]: "
+}
