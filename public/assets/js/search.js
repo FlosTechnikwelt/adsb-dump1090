@@ -1,3 +1,7 @@
+// search.js
+// Dieses Skript verwaltet die Flugsuche-Funktionalität auf der Suchseite.
+// Es verarbeitet Benutzereingaben, sendet Suchanfragen an den Server und zeigt die Ergebnisse auf einer Karte und in einer Tabelle an.
+
 document.addEventListener("DOMContentLoaded", () => {
   const searchForm = document.getElementById("search-form");
   const flightNumberInput = document.getElementById("flight-number");
@@ -6,9 +10,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const noResultsAlert = document.getElementById("no-results");
   const resultsHeading = document.getElementById("results-heading");
   const flightDetailsContainer = document.getElementById("flight-details");
-  flightDateInput.valueAsDate = new Date();
+  flightDateInput.valueAsDate = new Date(); // Setzt das Standarddatum auf das heutige Datum.
 
-  //Map Initialization
+  // Initialisiert die Leaflet-Karte für die Anzeige der Suchergebnisse.
   const map = L.map("map");
   L.tileLayer(
     "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
@@ -18,9 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   ).addTo(map);
 
-  let flightPathPolyline = null;
-  let startMarker = null;
-  let endMarker = null;
+  let flightPathPolyline = null; // Speichert die Polylinie des Flugpfads.
+  let startMarker = null; // Speichert den Startmarker des Flugpfads.
+  let endMarker = null; // Speichert den Endmarker des Flugpfads.
 
   searchForm.addEventListener("submit", async (e) => {
     e.preventDefault();

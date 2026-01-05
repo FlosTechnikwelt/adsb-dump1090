@@ -1,10 +1,14 @@
+// database.js
+// Dieses Modul ist für die Initialisierung und Verwaltung der SQLite-Datenbank zuständig.
+// Es stellt die Verbindung zur Datenbank her und sorgt dafür, dass die notwendigen Tabellen und Spalten existieren.
+
 const sqlite3 = require("sqlite3").verbose(); //Verbose für erweiterte Fehlermeldungen #DebugTime
 const path = require("path");
-const dbPath = path.join(__dirname, "stats.db"); //Datenbank Pfad
-const config = require("./config.json"); // Config Pfad
-const pre = config.prefixdb || "[DB]: ";
+const dbPath = path.join(__dirname, "stats.db"); // Pfad zur SQLite-Datenbankdatei.
+const config = require("./config.json"); // Lädt die Konfigurationsdatei.
+const pre = config.prefixdb || "[DB]: "; // Präfix für Datenbank-Log-Nachrichten.
 
-//Datenbank "Verbindung" herstellen
+// Stellt eine Verbindung zur SQLite-Datenbank her.
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error(pre, "Error opening database:", err.message);
@@ -13,10 +17,11 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-//DB Initialisieren - Tabelle und Spalten erstellen wenn diese nicht existiert
+// Initialisiert die Datenbank: Erstellt die 'aircraft_history'-Tabelle und fügt fehlende Spalten hinzu.
 const initDb = () => {
-  //Tabelle erstellen wenn diese nicht existiert
+  // Führt Datenbankoperationen seriell aus, um Race Conditions zu vermeiden.
   db.serialize(() => {
+    // SQL-Befehl zum Erstellen der 'aircraft_history'-Tabelle, falls sie noch nicht existiert.
     const createSql = `
             CREATE TABLE IF NOT EXISTS aircraft_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,53 +36,62 @@ const initDb = () => {
             )
         `;
     db.run(createSql, (err) => {
-      //Fehlerbehandlung
+      // Fehlerbehandlung beim Erstellen der Tabelle.
       if (err) {
         console.error(pre, "Error creating table:", err.message);
         return;
       }
       console.log(pre, "Table aircraft_history is ready");
-      //Neue Spalten hinzufügen wenn diese nicht existieren
+
+      // Fügt die Spalte 'squawk' hinzu, falls sie noch nicht existiert.
       const addSquawkSql =
         "ALTER TABLE aircraft_history ADD COLUMN squawk TEXT";
       db.run(addSquawkSql, (err) => {
         if (err && !err.message.includes("duplicate column name")) {
-          console.error(pre, "Error squawk column:", err.message);
+          console.error(pre, "Error adding 'squawk' column:", err.message);
         } else {
-          console.log(pre, '"squawk" is done');
+          console.log(pre, '"squawk" column is ready');
         }
       });
-      //Neue Spalte für Verlauf zur DB hinzufügen wenn noch nicht vorhanden
+
+      // Fügt die Spalte 'type' hinzu, falls sie noch nicht existiert.
       const addTypeSql = "ALTER TABLE aircraft_history ADD COLUMN type TEXT";
       db.run(addTypeSql, (err) => {
         if (err && !err.message.includes("duplicate column name")) {
-          console.error(pre, "Error type column:", err.message);
+          console.error(pre, "Error adding 'type' column:", err.message);
         } else {
-          console.log(pre, '"type" is done');
+          console.log(pre, '"type" column is ready');
         }
       });
-      //Neue Spalte für Hersteller hinzufügen, wenn noch nicht in der DB vorhanden
+
+      // Fügt die Spalte 'manufacturer' hinzu, falls sie noch nicht existiert.
       const addManufacturerSql =
         "ALTER TABLE aircraft_history ADD COLUMN manufacturer TEXT";
       db.run(addManufacturerSql, (err) => {
         if (err && !err.message.includes("duplicate column name")) {
-          console.error(pre, "Error manufacturer column:", err.message);
+          console.error(
+            pre,
+            "Error adding 'manufacturer' column:",
+            err.message,
+          );
         } else {
-          console.log(pre, '"manufacturer" is done');
+          console.log(pre, '"manufacturer" column is ready');
         }
       });
-      //Neue Spalte für die URL zu dem Foto einer sichtung hinzufügen
+
+      // Fügt die Spalte 'photo_url' hinzu, falls sie noch nicht existiert.
       const addPhotoUrlSql =
         "ALTER TABLE aircraft_history ADD COLUMN photo_url TEXT";
       db.run(addPhotoUrlSql, (err) => {
         if (err && !err.message.includes("duplicate column name")) {
-          console.error(pre, "Error photo_url column:", err.message);
+          console.error(pre, "Error adding 'photo_url' column:", err.message);
         } else {
-          console.log(pre, '"photo_url" is done');
+          console.log(pre, '"photo_url" column is ready');
         }
       });
     });
   });
 };
 
+// Exportiert das Datenbankobjekt und die Initialisierungsfunktion zur Verwendung in anderen Modulen.
 module.exports = { db, initDb };

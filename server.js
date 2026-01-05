@@ -1,3 +1,8 @@
+// server.js
+// Dies ist der Hauptserver für die ADS-B Flugzeug-Tracker-Anwendung.
+// Er initialisiert den Express-Server, lädt Konfigurationen, definiert API-Endpunkte
+// zum Abrufen, Speichern und Analysieren von Flugzeugdaten und dient statischen Dateien.
+
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
@@ -8,14 +13,15 @@ const port = 3001;
 const preserve = require("./config.json").prefixexpress || "[WEBSERVE]: ";
 const preconfig = require("./config.json").prefixconfig || "[CONFIG]: ";
 
-//DB initialisieren
+// Initialisiert die Datenbank beim Start des Servers.
 initDb();
 
 let config = {
   apiUrl: "",
 };
 
-//Konfiguration laden aus der config.json
+// Lädt die Konfiguration aus der 'config.json'-Datei.
+// Wenn die Datei nicht gefunden wird, wird eine Warnung ausgegeben und es wird versucht, lokale Daten zu verwenden.
 try {
   const rawConfig = fs.readFileSync(path.join(__dirname, "config.json"));
   config = JSON.parse(rawConfig);
@@ -27,7 +33,8 @@ try {
   );
 }
 
-//Funktion um Flugzeug Daten von dem ADS-B API in die Datenbank zu speichern, für spätere Analyse, Abfragen und Statistiken
+// Funktion zum Speichern von Flugzeugdaten in der Datenbank und Anreicherung mit externen Informationen.
+// Diese Daten werden später für Analysen, Abfragen und Statistiken verwendet.
 const recordAircraftData = async (aircraftList) => {
   for (const plane of aircraftList) {
     if (plane.hex) {
@@ -35,10 +42,11 @@ const recordAircraftData = async (aircraftList) => {
       let manufacturer = null;
       let photoUrl = null;
 
+      // Versucht, ein Flugzeugfoto von planespotters.net abzurufen.
       try {
         const photoResponse = await axios.get(
-          `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
-          { timeout: 3000 }, //Setze dden Timeout auf 3 Sekunden
+          `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, // API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
+          { timeout: 3000 }, // Setzt den Timeout auf 3 Sekunden
         );
         if (photoResponse.data.photos && photoResponse.data.photos.length > 0) {
           photoUrl = photoResponse.data.photos[0].thumbnail_large.src;
@@ -52,16 +60,17 @@ const recordAircraftData = async (aircraftList) => {
       }
       plane.photo_url = photoUrl;
 
+      // Wenn der Flugzeugtyp noch nicht bekannt ist, versucht die Funktion, diesen und den Hersteller von hexdb.io abzurufen.
       if (!aircraftType) {
         try {
           const hexdbResponse = await axios.get(
-            `https://hexdb.io/api/v1/aircraft/${plane.hex}`, // API für das Abfragen von FLugzeugtyp und Hersteller anhand der HEX
+            `https://hexdb.io/api/v1/aircraft/${plane.hex}`, // API für das Abfragen von Flugzeugtyp und Hersteller anhand der HEX
             { timeout: 3000 },
           );
           if (hexdbResponse.data) {
             aircraftType = hexdbResponse.data.Type || aircraftType;
             manufacturer = hexdbResponse.data.Manufacturer || null;
-            //Daten auch im Objekt speichern
+            // Daten auch im Objekt speichern
             plane.t = aircraftType;
             plane.manufacturer = manufacturer;
           }
@@ -74,11 +83,11 @@ const recordAircraftData = async (aircraftList) => {
         }
       }
 
-      //Daten in die Datenbank einfügen (SQL)
+      // Fügt die angereicherten Flugzeugdaten in die Datenbank ein.
       db.run(
         "INSERT INTO aircraft_history (hex, flight, alt_baro, gs, track, lat, lon, squawk, type, manufacturer, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
-          plane.hex, //MUST HAVE
+          plane.hex, // Muss vorhanden sein
           plane.flight || null,
           plane.alt_baro || null,
           plane.gs || null,
@@ -92,7 +101,7 @@ const recordAircraftData = async (aircraftList) => {
         ],
         function (err) {
           if (err) {
-            //Fehlerbehandlung beim einfügen von Daten
+            // Fehlerbehandlung beim Einfügen von Daten
             console.error(
               preserve,
               `Error inserting data for hex ${plane.hex}:`,
@@ -105,8 +114,9 @@ const recordAircraftData = async (aircraftList) => {
   }
 };
 
-//API
-//* Flugzeug Daten API Endpoint
+// API-Endpunkt zum Abrufen von Flugzeugdaten.
+// Ruft Daten von der konfigurierten externen API ab oder verwendet eine lokale 'data.json'.
+// Die abgerufenen Daten werden in der Datenbank gespeichert und an den Client gesendet.
 app.get("/api/aircraft", async (req, res) => {
   let data;
   if (config.apiUrl) {
@@ -143,11 +153,13 @@ app.get("/api/aircraft", async (req, res) => {
   }
 });
 
-//* Flug Suche API Endpoint
+// API-Endpunkt zum Abrufen von Flugstatistikdaten.
+// Führt mehrere Datenbankabfragen parallel aus, um verschiedene Statistiken zu sammeln
+// und gibt diese als JSON-Antwort zurück.
 app.get("/api/statistics", (req, res) => {
   const stats = {};
   const queries = [
-    //Gesamte anzahl der einzigartigen Flugzeuge
+    // Gesamtzahl der einzigartigen Flugzeuge
     new Promise((resolve, reject) => {
       db.get(
         "SELECT COUNT(DISTINCT hex) as count FROM aircraft_history",
@@ -158,7 +170,7 @@ app.get("/api/statistics", (req, res) => {
         },
       );
     }),
-    //5 Meist gesehene Flugzeuge (Nach Modell, zb. B737-800)
+    // Die 5 meistgesehenen Flugzeuge (nach HEX-Code)
     new Promise((resolve, reject) => {
       db.all(
         "SELECT hex, COUNT(hex) as count FROM aircraft_history GROUP BY hex ORDER BY count DESC LIMIT 5",
@@ -170,7 +182,7 @@ app.get("/api/statistics", (req, res) => {
       );
     }),
 
-    //Durchschnittswerte von Höhe und Geschwindigkeit
+    // Durchschnittswerte von Höhe und Geschwindigkeit
     new Promise((resolve, reject) => {
       db.get(
         "SELECT AVG(alt_baro) as avg_altitude, AVG(gs) as avg_speed FROM aircraft_history WHERE alt_baro > 0 AND gs > 0",
@@ -182,7 +194,7 @@ app.get("/api/statistics", (req, res) => {
       );
     }),
 
-    //Sichtunggen pro Stunde
+    // Sichtungen pro Stunde
     new Promise((resolve, reject) => {
       db.all(
         "SELECT strftime('%Y-%m-%d %H:00:00', timestamp) as hour, COUNT(*) as count FROM aircraft_history GROUP BY hour ORDER BY hour",
@@ -194,7 +206,7 @@ app.get("/api/statistics", (req, res) => {
       );
     }),
 
-    //Ausfzeichnen alle Flugzeugtypen mit anzahl der sichtungen
+    // Alle Flugzeugtypen mit Anzahl der Sichtungen
     new Promise((resolve, reject) => {
       db.all(
         "SELECT type, COUNT(*) as count FROM aircraft_history WHERE type IS NOT NULL GROUP BY type ORDER BY count DESC",
@@ -206,7 +218,7 @@ app.get("/api/statistics", (req, res) => {
       );
     }),
 
-    //die top 5 Hersteller mit den meisten sichtungen (Airbus, Boeing, etc)
+    // Die Top 5 Hersteller mit den meisten Sichtungen
     new Promise((resolve, reject) => {
       db.all(
         "SELECT manufacturer, COUNT(*) as count FROM aircraft_history WHERE manufacturer IS NOT NULL GROUP BY manufacturer ORDER BY count DESC LIMIT 5",
@@ -227,20 +239,21 @@ app.get("/api/statistics", (req, res) => {
     });
 });
 
-//* Flug Suche API Endpoint
+// API-Endpunkt für die Flugsuche.
+// Sucht in der Datenbank nach Flügen basierend auf Flugnummer und Datum.
 app.get("/api/flights/search", (req, res) => {
-  //Extrahiere Flugnummer und Datum aus den Query Parametern
+  // Extrahiert Flugnummer und Datum aus den Query-Parametern.
   const { flight, date } = req.query;
 
-  // Validierung der Eingaben, wenn eine fehlt, 400 zurückgeben
+  // Validierung der Eingaben: Wenn eine fehlt, wird ein 400 Bad Request zurückgegeben.
   if (!flight || !date) {
     return res.status(400).send("Flight number and date are required.");
   }
 
-  //Trimme Leerzeichen von der Flugnummer
+  // Entfernt Leerzeichen von der Flugnummer.
   const trimmedFlight = flight.trim();
 
-  //SQL Abfrage um die Flugdaten zu finden
+  // SQL-Abfrage, um die Flugdaten zu finden.
   const sql = `
         SELECT * FROM aircraft_history
         WHERE trim(flight) = ? AND date(timestamp) = ?
@@ -248,19 +261,19 @@ app.get("/api/flights/search", (req, res) => {
     `;
 
   db.all(sql, [trimmedFlight, date], (err, rows) => {
-    //Fehlerbehandlung
+    // Fehlerbehandlung bei Datenbankzugriff.
     if (err) {
       console.error(preserve, "Error searching flights:", err);
       return res.status(500).send("Error searching database.");
     }
-    //Ergebnisse als JSON zurückgeben, auch wenn keine gefunden wurden (leeres Array)
+    // Gibt die Ergebnisse als JSON zurück, auch wenn keine gefunden wurden (leeres Array).
     res.json(rows);
   });
 });
 
-//Static Files (Frontend)
+// Stellt statische Dateien aus dem 'public'-Verzeichnis bereit (Frontend).
 app.use(express.static(path.join(__dirname, "public")));
-//Chart.js und Adapter für Datum/Zeit Unterstützung
+// Stellt Chart.js und den Adapter für Datum/Zeit-Unterstützung bereit.
 app.use(
   "/scripts/chart.js",
   express.static(
@@ -277,18 +290,18 @@ app.use(
   ),
 );
 
-//Routen für HTML Seiten
+// Routen für HTML-Seiten.
 app.get("/search", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "search.html"));
 });
 
-// Keine 404, immer auf die Startseite weiterleiten (ggf. Toast mit Fehler anzeigen)
+// Leitet alle nicht gefundenen Routen auf die Startseite um (z.B. bei 404-Fehlern).
 app.get(/^[^.]*$/, (req, res) => {
-  //res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  //res.sendFile(path.join(__dirname, 'public', 'index.html')); // Auskommentiert, da eine Weiterleitung verwendet wird.
   res.redirect("/?error=notfound");
 });
 
-// Webserver starten
+// Startet den Webserver und lauscht auf dem konfigurierten Port.
 app.listen(port, () => {
   console.log(preserve, `Server listening at http://localhost:${port}`);
   if (config.apiUrl) {
