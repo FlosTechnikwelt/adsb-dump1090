@@ -46,53 +46,6 @@ const initDb = () => {
         return;
       }
       console.log(pre, "Table aircraft_history is ready");
-
-      // Fügt die Spalte 'squawk' hinzu, falls sie noch nicht existiert.
-      const addSquawkSql =
-        "ALTER TABLE aircraft_history ADD COLUMN squawk TEXT";
-      db.run(addSquawkSql, (err) => {
-        if (err && !err.message.includes("duplicate column name")) {
-          console.error(pre, "Error adding 'squawk' column:", err.message);
-        } else {
-          console.log(pre, '"squawk" column is ready');
-        }
-      });
-
-      // Fügt die Spalte 'type' hinzu, falls sie noch nicht existiert.
-      const addTypeSql = "ALTER TABLE aircraft_history ADD COLUMN type TEXT";
-      db.run(addTypeSql, (err) => {
-        if (err && !err.message.includes("duplicate column name")) {
-          console.error(pre, "Error adding 'type' column:", err.message);
-        } else {
-          console.log(pre, '"type" column is ready');
-        }
-      });
-
-      // Fügt die Spalte 'manufacturer' hinzu, falls sie noch nicht existiert.
-      const addManufacturerSql =
-        "ALTER TABLE aircraft_history ADD COLUMN manufacturer TEXT";
-      db.run(addManufacturerSql, (err) => {
-        if (err && !err.message.includes("duplicate column name")) {
-          console.error(
-            pre,
-            "Error adding 'manufacturer' column:",
-            err.message,
-          );
-        } else {
-          console.log(pre, '"manufacturer" column is ready');
-        }
-      });
-
-      // Fügt die Spalte 'photo_url' hinzu, falls sie noch nicht existiert.
-      const addPhotoUrlSql =
-        "ALTER TABLE aircraft_history ADD COLUMN photo_url TEXT";
-      db.run(addPhotoUrlSql, (err) => {
-        if (err && !err.message.includes("duplicate column name")) {
-          console.error(pre, "Error adding 'photo_url' column:", err.message);
-        } else {
-          console.log(pre, '"photo_url" column is ready');
-        }
-      });
     });
   });
 };
