@@ -1,7 +1,7 @@
 {
   "name": "desy-adsb",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.6.2",
+  "description": "Dies ist ein Web-App zur Visualisierung von ADS-B Daten, die von dump1090 gesammelt wurden. Es speichert historische Flugdaten in einer SQLite-Datenbank und stellt sie über eine Express.js-Server bereit.",
   "main": "index.js",
   "scripts": {
     "start": "node server.js",
