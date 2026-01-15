@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // Erstellt den Inhalt für das Popup-Fenster des Markers.
           const popupContent = `
-                        ${plane.photo_url ? `<img src="${plane.photo_url}" alt="Aircraft photo" style="width:100%;height:auto;border-radius:5px;">` : ""}
+                        ${plane.photo_url ? `<img src="${plane.photo_url}" alt="Aircraft photo" style="width:100%;height:auto;border-radius:5px;"><p style="font-size: 0.8rem; text-align: right; margin: 0;">Bild: <a href="https://www.planespotters.net/" target="_blank">Planespotters.net</a></p>` : ""}
                         <table class="popup-table">
                             <tr><td>Flug:</td><td>${plane.flight ? plane.flight.trim() : "N/A"}</td></tr>
                             <tr><td>Höhe:</td><td>${plane.alt_baro ? `<span title="${altitudeInMeters} m">${plane.alt_baro} ft</span>` : "N/A"}</td></tr>
