@@ -9,7 +9,7 @@ const fs = require("fs");
 const axios = require("axios");
 const { db, initDb } = require("./database"); //Datenbank Modul importieren
 const app = express();
-const port = 3001;
+const port = 3001; //Port für Expess
 const preserve = require("./config.json").prefixexpress || "[WEBSERVE]: ";
 const preconfig = require("./config.json").prefixconfig || "[CONFIG]: ";
 
@@ -48,6 +48,8 @@ const recordAircraftData = async (aircraftList) => {
         const photoResponse = await axios.get(
           `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
           { timeout: 3000 }, //Setzt den Timeout auf 3 Sekunden
+          `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
+          { timeout: 3000 }, //Setzt den Timeout auf 3 Sekunden
         );
         if (photoResponse.data.photos && photoResponse.data.photos.length > 0) {
           photoUrl = photoResponse.data.photos[0].thumbnail_large.src;
@@ -67,11 +69,13 @@ const recordAircraftData = async (aircraftList) => {
         try {
           const hexdbResponse = await axios.get(
             `https://hexdb.io/api/v1/aircraft/${plane.hex}`, //API für das Abfragen von Flugzeugtyp und Hersteller anhand der HEX
+            `https://hexdb.io/api/v1/aircraft/${plane.hex}`, //API für das Abfragen von Flugzeugtyp und Hersteller anhand der HEX
             { timeout: 3000 },
           );
           if (hexdbResponse.data) {
             aircraftType = hexdbResponse.data.Type || aircraftType;
             manufacturer = hexdbResponse.data.Manufacturer || null;
+            //Daten auch im Objekt speichern
             //Daten auch im Objekt speichern
             plane.t = aircraftType;
             plane.manufacturer = manufacturer;
@@ -165,6 +169,7 @@ app.get("/api/statistics", (req, res) => {
   const stats = {};
   const queries = [
     //Gesamtzahl der einzigartigen Flugzeuge
+    //Gesamtzahl der einzigartigen Flugzeuge
     new Promise((resolve, reject) => {
       db.get(
         "SELECT COUNT(DISTINCT hex) as count FROM aircraft_history",
@@ -176,6 +181,7 @@ app.get("/api/statistics", (req, res) => {
         },
       );
     }),
+    //Die 5 meistgesehenen Flugzeuge (nach HEX-Code)
     //Die 5 meistgesehenen Flugzeuge (nach HEX-Code)
     new Promise((resolve, reject) => {
       db.all(
@@ -190,6 +196,7 @@ app.get("/api/statistics", (req, res) => {
     }),
 
     //Durchschnittswerte von Höhe und Geschwindigkeit
+    //Durchschnittswerte von Höhe und Geschwindigkeit
     new Promise((resolve, reject) => {
       db.get(
         "SELECT AVG(alt_baro) as avg_altitude, AVG(gs) as avg_speed FROM aircraft_history WHERE alt_baro > 0 AND gs > 0",
@@ -202,6 +209,7 @@ app.get("/api/statistics", (req, res) => {
       );
     }),
 
+    //Sichtungen pro Stunde
     //Sichtungen pro Stunde
     new Promise((resolve, reject) => {
       db.all(
@@ -216,6 +224,7 @@ app.get("/api/statistics", (req, res) => {
     }),
 
     //Alle Flugzeugtypen mit Anzahl der Sichtungen
+    //Alle Flugzeugtypen mit Anzahl der Sichtungen
     new Promise((resolve, reject) => {
       db.all(
         "SELECT type, COUNT(*) as count FROM aircraft_history WHERE type IS NOT NULL GROUP BY type ORDER BY count DESC",
@@ -228,6 +237,7 @@ app.get("/api/statistics", (req, res) => {
       );
     }),
 
+    //Die Top 5 Hersteller mit den meisten Sichtungen
     //Die Top 5 Hersteller mit den meisten Sichtungen
     new Promise((resolve, reject) => {
       db.all(
@@ -279,12 +289,15 @@ app.get("/api/flights/search", (req, res) => {
       return res.status(500).send("Error searching database.");
     }
     //Gibt die Ergebnisse als JSON zurück, auch wenn keine gefunden wurden (leeres Array).
+    //Gibt die Ergebnisse als JSON zurück, auch wenn keine gefunden wurden (leeres Array).
     res.json(rows);
   });
 });
 
 //Stellt statische Dateien aus dem 'public'-Verzeichnis bereit (Frontend).
+//Stellt statische Dateien aus dem 'public'-Verzeichnis bereit (Frontend).
 app.use(express.static(path.join(__dirname, "public")));
+//Stellt Chart.js und den Adapter für Datum/Zeit-Unterstützung bereit.
 //Stellt Chart.js und den Adapter für Datum/Zeit-Unterstützung bereit.
 app.use(
   "/scripts/chart.js",
@@ -303,16 +316,20 @@ app.use(
 );
 
 //Routen für HTML-Seiten.
+//Routen für HTML-Seiten.
 app.get("/search", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "search.html"));
 });
 
 //Leitet alle nicht gefundenen Routen auf die Startseite um (z.B. bei 404-Fehlern).
+//Leitet alle nicht gefundenen Routen auf die Startseite um (z.B. bei 404-Fehlern).
 app.get(/^[^.]*$/, (req, res) => {
+  //res.sendFile(path.join(__dirname, 'public', 'index.html')); //Auskommentiert, da eine Weiterleitung verwendet wird.
   //res.sendFile(path.join(__dirname, 'public', 'index.html')); //Auskommentiert, da eine Weiterleitung verwendet wird.
   res.redirect("/?error=notfound");
 });
 
+//Startet den Webserver und lauscht auf dem konfigurierten Port.
 //Startet den Webserver und lauscht auf dem konfigurierten Port.
 app.listen(port, () => {
   console.log(preserve, `Server listening at http://localhost:${port}`);
@@ -322,7 +339,7 @@ app.listen(port, () => {
   } else {
     console.log(
       preserve,
-      "Using local data.json. Edit config.json to point to a real API.",
+      "No apiUrl configured. /api/aircraft will return 500. Set 'apiUrl' in config.json.",
     );
   }
 });

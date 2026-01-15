@@ -8,7 +8,7 @@ const dbPath = path.join(__dirname, "stats.db"); //Pfad zur SQLite-Datenbankdate
 const config = require("./config.json"); //Lädt die Konfigurationsdatei.
 const pre = config.prefixdb || "[DB]: "; //Präfix für Datenbank-Log-Nachrichten.
 
-//Stellt eine Verbindung zur SQLite-Datenbank her, bzw. erstellt eine neue Datei wenn noch keine Vrhanden
+// Stellt eine Verbindung zur SQLite-Datenbank her.
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error(pre, "Error opening database:", err.message);
@@ -19,7 +19,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 //Initialisiert die Datenbank: Erstellt die 'aircraft_history'-Tabelle und fügt fehlende Spalten hinzu.
 const initDb = () => {
-
+  // Führt Datenbankoperationen seriell aus, um Race Conditions zu vermeiden.
   db.serialize(() => {
     //SQL-Befehl zum Erstellen der 'aircraft_history'-Tabelle, falls sie noch nicht existiert.
     const createSql = `
@@ -32,18 +32,22 @@ const initDb = () => {
                 track REAL,
                 lat REAL,
                 lon REAL,
+                squawk TEXT,
+                type TEXT,
+                manufacturer TEXT,
+                photo_url TEXT,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `;
     db.run(createSql, (err) => {
-      //Fehler beim erstellen
+      // Fehlerbehandlung beim Erstellen der Tabelle.
       if (err) {
         console.error(pre, "Error creating table:", err.message);
         return;
       }
       console.log(pre, "Table aircraft_history is ready");
 
-      //Neue Spalte 'squawk'
+      // Fügt die Spalte 'squawk' hinzu, falls sie noch nicht existiert.
       const addSquawkSql =
         "ALTER TABLE aircraft_history ADD COLUMN squawk TEXT";
       db.run(addSquawkSql, (err) => {
@@ -54,7 +58,7 @@ const initDb = () => {
         }
       });
 
-      //Neue Spalte 'type'
+      // Fügt die Spalte 'type' hinzu, falls sie noch nicht existiert.
       const addTypeSql = "ALTER TABLE aircraft_history ADD COLUMN type TEXT";
       db.run(addTypeSql, (err) => {
         if (err && !err.message.includes("duplicate column name")) {
@@ -64,7 +68,7 @@ const initDb = () => {
         }
       });
 
-      //Neue Spalte 'manufacturer'
+      // Fügt die Spalte 'manufacturer' hinzu, falls sie noch nicht existiert.
       const addManufacturerSql =
         "ALTER TABLE aircraft_history ADD COLUMN manufacturer TEXT";
       db.run(addManufacturerSql, (err) => {
@@ -79,7 +83,7 @@ const initDb = () => {
         }
       });
 
-      //Neue Splte 'photo_url'
+      // Fügt die Spalte 'photo_url' hinzu, falls sie noch nicht existiert.
       const addPhotoUrlSql =
         "ALTER TABLE aircraft_history ADD COLUMN photo_url TEXT";
       db.run(addPhotoUrlSql, (err) => {
@@ -93,5 +97,5 @@ const initDb = () => {
   });
 };
 
-//Exportieren
+// Exportiert das Datenbankobjekt und die Initialisierungsfunktion zur Verwendung in anderen Modulen.
 module.exports = { db, initDb };
