@@ -7,24 +7,14 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
-const { sqlite3, dbPath, initDb } = require("./database"); //Datenbank Modul importieren
+const { db, initDb } = require("./database"); //Datenbank Modul importieren
 const app = express();
 const port = 3001; //Port für Expess
 const preserve = require("./config.json").prefixexpress || "[WEBSERVE]: ";
 const preconfig = require("./config.json").prefixconfig || "[CONFIG]: ";
-const pre = require("./config.json").prefixdb || "[DB]: ";
-
-// Stellt eine Verbindung zur SQLite-Datenbank her.
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error(pre, "Error opening database:", err.message);
-  } else {
-    console.log(pre, "Connected to the SQLite database.");
-  }
-});
 
 //Initialisiert die Datenbank beim Start des Servers
-initDb(db);
+initDb();
 
 let config = {
   apiUrl: "",
@@ -192,14 +182,22 @@ app.get("/api/aircraft/current", async (req, res) => {
     } catch (error) {
       console.error(
         preserve,
-        `Error: Interner Server Fehler (500)`,
+        `Error fetching from external API (${config.apiUrl}):`,
         error.message,
       );
-      return res.status(500).send("Error: Internal Server Error");
+      return res.status(500).send("Error fetching data from external API.");
     }
   } else {
-    console.error(preserve, "Error reading data.json:", err);
-    return res.status(500).send("Error reading data file");
+    try {
+      const rawData = fs.readFileSync(
+        path.join(__dirname, "data.json"),
+        "utf8",
+      );
+      data = JSON.parse(rawData);
+    } catch (err) {
+      console.error(preserve, "Error reading data.json:", err);
+      return res.status(500).send("Error reading data file");
+    }
   }
 
   if (data && data.aircraft) {
@@ -383,15 +381,15 @@ app.get(/^[^.]*$/, (req, res) => {
 
 //Startet den Webserver und lauscht auf dem konfigurierten Port.
 //Startet den Webserver und lauscht auf dem konfigurierten Port.
-app.listen(port, () => {
-  console.log(preserve, `Server listening at http://localhost:${port}`);
+app.listen(port, '0.0.0.0', () => {
+  console.log(preserve, `Server listening on port ${port}`);
   if (config.apiUrl) {
     console.log(preserve, `Proxying API requests to: ${config.apiUrl}`);
     console.log(preserve, "⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎ Ready for take off! ⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎");
   } else {
     console.log(
       preserve,
-      "No apiUrl configured. /api/aircraft will return 500. Set 'apiUrl' in config.json.",
+      "No apiUrl configured. /api/aircraft will use local data.json if available.",
     );
   }
 });
