@@ -8,17 +8,8 @@ const dbPath = path.join(__dirname, "stats.db"); //Pfad zur SQLite-Datenbankdate
 const config = require("./config.json"); //Lädt die Konfigurationsdatei.
 const pre = config.prefixdb || "[DB]: "; //Präfix für Datenbank-Log-Nachrichten.
 
-// Stellt eine Verbindung zur SQLite-Datenbank her.
-const db = new sqlite3.Database(dbPath, (err) => {
-  if (err) {
-    console.error(pre, "Error opening database:", err.message);
-  } else {
-    console.log(pre, "Connected to the SQLite database.");
-  }
-});
-
 //Initialisiert die Datenbank: Erstellt die 'aircraft_history'-Tabelle und fügt fehlende Spalten hinzu.
-const initDb = () => {
+const initDb = (db) => {
   // Führt Datenbankoperationen seriell aus, um Race Conditions zu vermeiden.
   db.serialize(() => {
     //SQL-Befehl zum Erstellen der 'aircraft_history'-Tabelle, falls sie noch nicht existiert.
@@ -51,4 +42,4 @@ const initDb = () => {
 };
 
 // Exportiert das Datenbankobjekt und die Initialisierungsfunktion zur Verwendung in anderen Modulen.
-module.exports = { db, initDb };
+module.exports = { sqlite3, dbPath, initDb };

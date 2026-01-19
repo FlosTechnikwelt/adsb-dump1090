@@ -7,14 +7,24 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
-const { db, initDb } = require("./database"); //Datenbank Modul importieren
+const { sqlite3, dbPath, initDb } = require("./database"); //Datenbank Modul importieren
 const app = express();
 const port = 3001; //Port für Expess
 const preserve = require("./config.json").prefixexpress || "[WEBSERVE]: ";
 const preconfig = require("./config.json").prefixconfig || "[CONFIG]: ";
+const pre = require("./config.json").prefixdb || "[DB]: ";
+
+// Stellt eine Verbindung zur SQLite-Datenbank her.
+const db = new sqlite3.Database(dbPath, (err) => {
+  if (err) {
+    console.error(pre, "Error opening database:", err.message);
+  } else {
+    console.log(pre, "Connected to the SQLite database.");
+  }
+});
 
 //Initialisiert die Datenbank beim Start des Servers
-initDb();
+initDb(db);
 
 let config = {
   apiUrl: "",
