@@ -34,11 +34,23 @@ try {
   );
 }
 
+const dedupeWindowMs = Number.isFinite(config.dedupeSeconds)
+  ? Math.max(0, config.dedupeSeconds) * 1000
+  : 60 * 1000;
+const lastRecordedAt = new Map();
+
 //Funktion zum Speichern von Flugzeugdaten in der Datenbank und Anreicherung mit externen Informationen
 //Diese Daten werden später für Analysen, Abfragen und Statistiken verwendet
 const recordAircraftData = async (aircraftList) => {
   for (const plane of aircraftList) {
     if (plane.hex) {
+      const lastSeen = lastRecordedAt.get(plane.hex);
+      const now = Date.now();
+      if (lastSeen && now - lastSeen < dedupeWindowMs) {
+        continue;
+      }
+      lastRecordedAt.set(plane.hex, now);
+
       let aircraftType = plane.t || null;
       let manufacturer = null;
       let photoUrl = null;
@@ -46,8 +58,6 @@ const recordAircraftData = async (aircraftList) => {
       //Versucht, ein Flugzeugfoto von planespotters.net abzurufen
       try {
         const photoResponse = await axios.get(
-          `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
-          { timeout: 3000 }, //Setzt den Timeout auf 3 Sekunden
           `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
           { timeout: 3000 }, //Setzt den Timeout auf 3 Sekunden
         );
@@ -68,7 +78,6 @@ const recordAircraftData = async (aircraftList) => {
       if (!aircraftType) {
         try {
           const hexdbResponse = await axios.get(
-            `https://hexdb.io/api/v1/aircraft/${plane.hex}`, //API für das Abfragen von Flugzeugtyp und Hersteller anhand der HEX
             `https://hexdb.io/api/v1/aircraft/${plane.hex}`, //API für das Abfragen von Flugzeugtyp und Hersteller anhand der HEX
             { timeout: 3000 },
           );
@@ -159,6 +168,39 @@ app.get("/api/aircraft", async (req, res) => {
     res.json(data);
   } else {
     res.json({ aircraft: [] });
+  }
+});
+
+//API-Endpunkt zum Abrufen der aktuell sichtbaren Flugzeuge mit reduzierten Daten
+//Gibt nur Flugnummer, Höhe und Geschwindigkeit zurück
+app.get("/api/aircraft/current", async (req, res) => {
+  let data;
+  if (config.apiUrl) {
+    try {
+      const response = await axios.get(config.apiUrl, { timeout: 5000 });
+      data = response.data;
+    } catch (error) {
+      console.error(
+        preserve,
+        `Error: Interner Server Fehler (500)`,
+        error.message,
+      );
+      return res.status(500).send("Error: Internal Server Error");
+    }
+  } else {
+    console.error(preserve, "Error reading data.json:", err);
+    return res.status(500).send("Error reading data file");
+  }
+
+  if (data && data.aircraft) {
+    const simplifiedAircraft = data.aircraft.map((plane) => ({
+      flight: plane.flight || "N/A",
+      altitude: plane.alt_baro,
+      speed: plane.gs,
+    }));
+    res.json(simplifiedAircraft);
+  } else {
+    res.json([]);
   }
 });
 
