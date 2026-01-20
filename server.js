@@ -28,10 +28,7 @@ try {
   console.log(preconfig, "Configuration loaded");
 } catch (error) {
   //Error handling
-  console.warn(
-    preconfig,
-    "Could not read config.json, will use local data.json if available.",
-  );
+  console.warn(preconfig, "Could not read config.json, mybe it is missing?",);
 }
 
 const dedupeWindowMs = Number.isFinite(config.dedupeSeconds)
@@ -59,7 +56,7 @@ const recordAircraftData = async (aircraftList) => {
       try {
         const photoResponse = await axios.get(
           `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
-          { timeout: 3000 }, //Setzt den Timeout auf 3 Sekunden
+          { timeout: 30000 }, //Setzt den Timeout auf 3 Sekunden
         );
         if (photoResponse.data.photos && photoResponse.data.photos.length > 0) {
           photoUrl = photoResponse.data.photos[0].thumbnail_large.src;
@@ -85,7 +82,6 @@ const recordAircraftData = async (aircraftList) => {
             aircraftType = hexdbResponse.data.Type || aircraftType;
             manufacturer = hexdbResponse.data.Manufacturer || null;
             //Daten auch im Objekt speichern
-            //Daten auch im Objekt speichern
             plane.t = aircraftType;
             plane.manufacturer = manufacturer;
           }
@@ -104,16 +100,20 @@ const recordAircraftData = async (aircraftList) => {
         "INSERT INTO aircraft_history (hex, flight, alt_baro, gs, track, lat, lon, squawk, type, manufacturer, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
           plane.hex, //Muss vorhanden sein
-          plane.flight || null, //Optional
-          plane.alt_bar || null, //Optional
-          plane.gs || null, //Optional
-          plane.track || null, //Optional
-          plane.lat || null, //Optional
-          plane.lon || null, //Optional
-          plane.squawk || null, //Optional
-          aircraftType, //Optional
-          manufacturer, //Optional
-          photoUrl, //Optional
+          plane.flight || null, //Optionale angabe
+          plane.alt_bar || null, //Optionale angabe
+          plane.gs || null, //Optionale angabe
+          plane.track || null, //Optionale angabe
+          plane.lat || null, //Optionale angabe
+          plane.lon || null, //Optionale angabe
+          plane.squawk || null, //Optionale angabe
+          aircraftType, //Optionale angabe
+          manufacturer, //Optionale angabe
+          photoUrl, //Optionale angabe
+          //Ziel?
+          //Herkunft?
+          //Dauer?
+          //Strecke?
         ],
         function (err) {
           if (err) {
@@ -219,7 +219,6 @@ app.get("/api/statistics", (req, res) => {
   const stats = {};
   const queries = [
     //Gesamtzahl der einzigartigen Flugzeuge
-    //Gesamtzahl der einzigartigen Flugzeuge
     new Promise((resolve, reject) => {
       db.get(
         "SELECT COUNT(DISTINCT hex) as count FROM aircraft_history",
@@ -231,7 +230,6 @@ app.get("/api/statistics", (req, res) => {
         },
       );
     }),
-    //Die 5 meistgesehenen Flugzeuge (nach HEX-Code)
     //Die 5 meistgesehenen Flugzeuge (nach HEX-Code)
     new Promise((resolve, reject) => {
       db.all(
@@ -246,7 +244,6 @@ app.get("/api/statistics", (req, res) => {
     }),
 
     //Durchschnittswerte von Höhe und Geschwindigkeit
-    //Durchschnittswerte von Höhe und Geschwindigkeit
     new Promise((resolve, reject) => {
       db.get(
         "SELECT AVG(alt_baro) as avg_altitude, AVG(gs) as avg_speed FROM aircraft_history WHERE alt_baro > 0 AND gs > 0",
@@ -259,7 +256,6 @@ app.get("/api/statistics", (req, res) => {
       );
     }),
 
-    //Sichtungen pro Stunde
     //Sichtungen pro Stunde
     new Promise((resolve, reject) => {
       db.all(
@@ -274,7 +270,6 @@ app.get("/api/statistics", (req, res) => {
     }),
 
     //Alle Flugzeugtypen mit Anzahl der Sichtungen
-    //Alle Flugzeugtypen mit Anzahl der Sichtungen
     new Promise((resolve, reject) => {
       db.all(
         "SELECT type, COUNT(*) as count FROM aircraft_history WHERE type IS NOT NULL GROUP BY type ORDER BY count DESC",
@@ -287,8 +282,7 @@ app.get("/api/statistics", (req, res) => {
       );
     }),
 
-    //Die Top 5 Hersteller mit den meisten Sichtungen
-    //Die Top 5 Hersteller mit den meisten Sichtungen
+    //Top 5 Hersteller mit den meisten Sichtungen
     new Promise((resolve, reject) => {
       db.all(
         "SELECT manufacturer, COUNT(*) as count FROM aircraft_history WHERE manufacturer IS NOT NULL GROUP BY manufacturer ORDER BY count DESC LIMIT 5",
@@ -338,16 +332,13 @@ app.get("/api/flights/search", (req, res) => {
       console.error(preserve, "Error searching flights:", err);
       return res.status(500).send("Error searching database.");
     }
-    //Gibt die Ergebnisse als JSON zurück, auch wenn keine gefunden wurden (leeres Array).
-    //Gibt die Ergebnisse als JSON zurück, auch wenn keine gefunden wurden (leeres Array).
+    //Gibt die Ergebnisse als JSON zurück auch wenn keine gefunden wurden (also ein leeres Array).
     res.json(rows);
   });
 });
 
-//Stellt statische Dateien aus dem 'public'-Verzeichnis bereit (Frontend).
-//Stellt statische Dateien aus dem 'public'-Verzeichnis bereit (Frontend).
+//Stellt statische Dateien aus dem 'public'-Verzeichnis bereit.
 app.use(express.static(path.join(__dirname, "public")));
-//Stellt Chart.js und den Adapter für Datum/Zeit-Unterstützung bereit.
 //Stellt Chart.js und den Adapter für Datum/Zeit-Unterstützung bereit.
 app.use(
   "/scripts/chart.js",
@@ -366,15 +357,12 @@ app.use(
 );
 
 //Routen für HTML-Seiten.
-//Routen für HTML-Seiten.
 app.get("/search", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "search.html"));
 });
 
 //Leitet alle nicht gefundenen Routen auf die Startseite um (z.B. bei 404-Fehlern).
-//Leitet alle nicht gefundenen Routen auf die Startseite um (z.B. bei 404-Fehlern).
 app.get(/^[^.]*$/, (req, res) => {
-  //res.sendFile(path.join(__dirname, 'public', 'index.html')); //Auskommentiert, da eine Weiterleitung verwendet wird.
   //res.sendFile(path.join(__dirname, 'public', 'index.html')); //Auskommentiert, da eine Weiterleitung verwendet wird.
   res.redirect("/?error=notfound");
 });
