@@ -1,15 +1,14 @@
+'use strict';
 //server.js
 //Dies ist der Hauptserver für die ADS-B Flugzeug-Tracker-Anwendung
 //Er initialisiert den Express-Server, lädt Konfigurationen, definiert API-Endpunkte
 //zum Abrufen, Speichern und Analysieren von Flugzeugdaten und dient statischen Dateien
-
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
 const { db, initDb } = require("./database"); //Datenbank Modul importieren
 const app = express();
-const port = 3001; //Port für Expess
 const preserve = require("./config.json").prefixexpress || "[WEBSERVE]: ";
 const preconfig = require("./config.json").prefixconfig || "[CONFIG]: ";
 
@@ -369,15 +368,16 @@ app.get(/^[^.]*$/, (req, res) => {
 
 //Startet den Webserver und lauscht auf dem konfigurierten Port.
 //Startet den Webserver und lauscht auf dem konfigurierten Port.
-app.listen(port, '0.0.0.0', () => {
-  console.log(preserve, `Server listening on port ${port}`);
+app.listen(config.port, config.listenon, () => {
+  console.log(preserve, `Server listening on ${config.listenon}:${config.port}`);
+  console.log(preserve, "DESY-ADSB Flight Tracker is up and running!");
   if (config.apiUrl) {
     console.log(preserve, `Proxying API requests to: ${config.apiUrl}`);
     console.log(preserve, "⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎ Ready for take off! ⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎");
   } else {
-    console.log(
+    console.error(
       preserve,
-      "No apiUrl configured. /api/aircraft will use local data.json if available.",
+      "No apiUrl configured",
     );
   }
 });

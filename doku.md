@@ -161,22 +161,16 @@ Beide API-Quellen sind optional, falls es zu Fehlern oder Timeouts führt werden
 - `deinstall.sh`: Entfernen aller datein und Packeten die durch `install.sh` installiert worden sind. 
 
 ## Glossar
-
 - **ADS-B**  
   *Automatic Dependent Surveillance–Broadcast*: Ein Überwachungsverfahren in der Luftfahrt, bei dem Flugzeuge ihre Position, Höhe, Geschwindigkeit und Identität automatisch per Funk aussenden. Die Daten stammen in der Regel aus dem bordeigenen GPS und können von Bodenstationen sowie anderen Luftfahrzeugen empfangen werden.
-
 - **Squawk**  
   Ein vierstelliger Oktalcode, der vom Transponder eines Flugzeugs gesendet wird. Er dient der Identifikation und Kommunikation mit der Flugsicherung (z. B. 7000 für VFR, 7700 für Notfall).
-
 - **Dump1090**  
   Ein Open-Source-Programm zum Empfangen, Dekodieren und Anzeigen von Mode-S- und ADS-B-Signalen auf 1090 MHz, häufig in Kombination mit einem SDR-Empfänger.
-
 - **Leaflet**  
   Eine leichtgewichtige JavaScript-Bibliothek zur Darstellung interaktiver Karten im Web. Sie wird verwendet, um Flugzeugpositionen auf der Karte anzuzeigen.
-
 - **hex**  
   Die 24-Bit-ICAO-Adresse eines Flugzeugs, immer hexadezimal dargestellt. Sie ist weltweit eindeutig und dient als feste Identifikationsnummer des Luftfahrzeugs in Mode-S- und ADS-B-Systemen.
-
 
 ## Hinweis zu Dump1090
 Als Datenquelle wird ein lokaler dump1090-JSON-Endpunkt genutzt werden. DIese Anwednung verarbeitet die dort bereitgestellten Flugzeuglisten und speichert sie für Statistik und Suche. In diesem Fall wird als Treiber für Dump1090, der von FlightAwate genutzt.
