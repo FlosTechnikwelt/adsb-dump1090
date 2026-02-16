@@ -31,39 +31,135 @@ const dedupeWindowMs = Number.isFinite(config.dedupeSeconds)
   ? Math.max(0, config.dedupeSeconds) * 1000
   : 60 * 1000;
 const lastRecordedAt = new Map();
+const aircraftMetaByHex = new Map();
+const dbAll = (sql, params = []) =>
+  new Promise((resolve, reject) => {
+    db.all(sql, params, (err, rows) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(rows);
+    });
+  });
+
+const mergeAircraftMeta = (hex, meta) => {
+  if (!hex) {
+    return;
+  }
+
+  const existing = aircraftMetaByHex.get(hex) || {};
+  const next = { ...existing };
+
+  if (meta.photo_url) {
+    next.photo_url = meta.photo_url;
+  }
+  if (meta.type) {
+    next.type = meta.type;
+  }
+  if (meta.manufacturer) {
+    next.manufacturer = meta.manufacturer;
+  }
+
+  if (Object.keys(next).length > 0) {
+    aircraftMetaByHex.set(hex, next);
+  }
+};
+
+const applyAircraftMeta = (plane) => {
+  if (!plane || !plane.hex) {
+    return;
+  }
+
+  const cached = aircraftMetaByHex.get(plane.hex);
+  if (!cached) {
+    return;
+  }
+
+  if (!plane.photo_url && cached.photo_url) {
+    plane.photo_url = cached.photo_url;
+  }
+  if (!plane.t && cached.type) {
+    plane.t = cached.type;
+  }
+  if (!plane.manufacturer && cached.manufacturer) {
+    plane.manufacturer = cached.manufacturer;
+  }
+};
+
+const hydrateAircraftMetaFromDb = async (aircraftList) => {
+  const hexes = [
+    ...new Set(
+      aircraftList
+        .map((plane) => plane.hex)
+        .filter((hex) => typeof hex === "string" && hex.length > 0),
+    ),
+  ];
+
+  if (hexes.length === 0) {
+    return;
+  }
+
+  const placeholders = hexes.map(() => "?").join(", ");
+  const rows = await dbAll(
+    `
+      SELECT hex, type, manufacturer, photo_url
+      FROM aircraft_history
+      WHERE hex IN (${placeholders})
+      ORDER BY timestamp DESC
+    `,
+    hexes,
+  );
+
+  for (const row of rows) {
+    mergeAircraftMeta(row.hex, {
+      photo_url: row.photo_url,
+      type: row.type,
+      manufacturer: row.manufacturer,
+    });
+  }
+};
 
 //Funktion zum Speichern von Flugzeugdaten in der Datenbank und Anreicherung mit externen Informationen
 //Diese Daten werden später für Analysen, Abfragen und Statistiken verwendet
 const recordAircraftData = async (aircraftList) => {
   for (const plane of aircraftList) {
     if (plane.hex) {
+      applyAircraftMeta(plane);
+      const cachedMeta = aircraftMetaByHex.get(plane.hex) || {};
+
       const lastSeen = lastRecordedAt.get(plane.hex);
       const now = Date.now();
+      let aircraftType = plane.t || cachedMeta.type || null;
+      let manufacturer = plane.manufacturer || cachedMeta.manufacturer || null;
+      let photoUrl = plane.photo_url || cachedMeta.photo_url || null;
+
       if (lastSeen && now - lastSeen < dedupeWindowMs) {
+        plane.t = aircraftType;
+        plane.manufacturer = manufacturer;
+        plane.photo_url = photoUrl;
         continue;
       }
       lastRecordedAt.set(plane.hex, now);
 
-      let aircraftType = plane.t || null;
-      let manufacturer = null;
-      let photoUrl = null;
-
       //Versucht, ein Flugzeugfoto von planespotters.net abzurufen
-      try {
-        const photoResponse = await axios.get(
-          `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
-          { timeout: 30000 }, //Setzt den Timeout auf 3 Sekunden
-        );
-        if (photoResponse.data.photos && photoResponse.data.photos.length > 0) {
-          photoUrl = photoResponse.data.photos[0].thumbnail_large.src;
+      if (!photoUrl) {
+        try {
+          const photoResponse = await axios.get(
+            `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
+            { timeout: 30000 }, //Setzt den Timeout auf 3 Sekunden
+          );
+          if (photoResponse.data.photos && photoResponse.data.photos.length > 0) {
+            photoUrl = photoResponse.data.photos[0].thumbnail_large.src;
+          }
+        } catch (error) {
+          //Error handling
+          console.warn(
+            preserve,
+            `Error fetching photo from planespotters.net for hex ${plane.hex}:`,
+            error.message,
+          );
         }
-      } catch (error) {
-        //Error handling
-        console.warn(
-          preserve,
-          `Error fetching photo from planespotters.net for hex ${plane.hex}:`,
-          error.message,
-        );
       }
       plane.photo_url = photoUrl;
 
@@ -76,7 +172,7 @@ const recordAircraftData = async (aircraftList) => {
           );
           if (hexdbResponse.data) {
             aircraftType = hexdbResponse.data.Type || aircraftType;
-            manufacturer = hexdbResponse.data.Manufacturer || null;
+            manufacturer = hexdbResponse.data.Manufacturer || manufacturer;
             //Daten auch im Objekt speichern
             plane.t = aircraftType;
             plane.manufacturer = manufacturer;
@@ -90,6 +186,14 @@ const recordAircraftData = async (aircraftList) => {
           );
         }
       }
+
+      plane.t = aircraftType;
+      plane.manufacturer = manufacturer;
+      mergeAircraftMeta(plane.hex, {
+        photo_url: photoUrl,
+        type: aircraftType,
+        manufacturer,
+      });
 
       //Fügt die angereicherten Flugzeugdaten in die Datenbank ein
       db.run(
@@ -148,8 +252,18 @@ app.get("/api/aircraft", async (req, res) => {
   }
 
   if (data && data.aircraft) {
-    await recordAircraftData(data.aircraft);
+    try {
+      await hydrateAircraftMetaFromDb(data.aircraft);
+    } catch (error) {
+      console.warn(preserve, "Could not hydrate aircraft metadata from DB:", error.message);
+    }
+
+    data.aircraft.forEach(applyAircraftMeta);
     res.json(data);
+
+    recordAircraftData(data.aircraft).catch((error) => {
+      console.error(preserve, "Error enriching/storing aircraft data:", error.message);
+    });
   } else {
     res.json({ aircraft: [] });
   }
