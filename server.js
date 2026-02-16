@@ -12,9 +12,6 @@ const app = express();
 const preserve = require("./config.json").prefixexpress || "[WEBSERVE]: ";
 const preconfig = require("./config.json").prefixconfig || "[CONFIG]: ";
 
-//Initialisiert die Datenbank beim Start des Servers
-initDb();
-
 let config = {
   apiUrl: "",
 };
@@ -100,7 +97,7 @@ const recordAircraftData = async (aircraftList) => {
         [
           plane.hex, //Muss vorhanden sein
           plane.flight || null, //Optionale angabe
-          plane.alt_bar || null, //Optionale angabe
+          plane.alt_baro || null, //Optionale angabe
           plane.gs || null, //Optionale angabe
           plane.track || null, //Optionale angabe
           plane.lat || null, //Optionale angabe
@@ -345,17 +342,28 @@ app.get(/^[^.]*$/, (req, res) => {
 });
 
 //Startet den Webserver und lauscht auf dem konfigurierten Port.
-//Startet den Webserver und lauscht auf dem konfigurierten Port.
-app.listen(config.port, config.listenon, () => {
-  console.log(preserve, `Server listening on ${config.listenon}:${config.port}`);
-  console.log(preserve, "DESY-ADSB Flight Tracker is up and running!");
-  if (config.apiUrl) {
-    console.log(preserve, `Proxying API requests to: ${config.apiUrl}`);
-    console.log(preserve, "⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎ Ready for take off! ⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎");
-  } else {
-    console.error(
-      preserve,
-      "No apiUrl configured",
-    );
+const startServer = async () => {
+  try {
+    // Initialisiert die Datenbank vor dem Start des Webservers.
+    await initDb();
+  } catch (error) {
+    console.error(preserve, "Database initialization failed:", error.message);
+    process.exit(1);
   }
-});
+
+  app.listen(config.port, config.listenon, () => {
+    console.log(preserve, `Server listening on ${config.listenon}:${config.port}`);
+    console.log(preserve, "DESY-ADSB Flight Tracker is up and running!");
+    if (config.apiUrl) {
+      console.log(preserve, `Proxying API requests to: ${config.apiUrl}`);
+      console.log(preserve, "⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎ Ready for take off! ⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎");
+    } else {
+      console.error(
+        preserve,
+        "No apiUrl configured",
+      );
+    }
+  });
+};
+
+startServer();
