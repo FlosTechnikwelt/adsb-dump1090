@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ADS-B Flugzeug-Tracker - Praesentation</title>
+    <style>
+      :root {
+        --bg1: #0e1b2a;
+        --bg2: #12263a;
+        --fg: #eef4ff;
+        --accent: #ffcc33;
+        --muted: #b7c6d9;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--fg);
+        background: radial-gradient(1200px 800px at 10% 10%, #1a2f48 0%, var(--bg1) 40%, var(--bg2) 100%);
+        overflow: hidden;
+      }
+      .deck {
+        height: 100%;
+        width: 100%;
+        position: relative;
+      }
+      .slide {
+        position: absolute;
+        inset: 0;
+        padding: 6vh 8vw;
+        opacity: 0;
+        transform: translateX(40px);
+        transition: opacity 200ms ease, transform 200ms ease;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 2vh;
+      }
+      .slide.active {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      h1, h2 {
+        margin: 0;
+        line-height: 1.1;
+      }
+      h1 { font-size: clamp(2rem, 4vw, 3.8rem); }
+      h2 { font-size: clamp(1.6rem, 3vw, 2.6rem); color: var(--accent); }
+      p, li { font-size: clamp(1rem, 1.8vw, 1.3rem); color: var(--fg); }
+      ul { margin: 0; padding-left: 1.2em; }
+      .muted { color: var(--muted); }
+      .footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .badge {
+        display: inline-block;
+        padding: 0.3em 0.6em;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        border-radius: 999px;
+        font-size: 0.9rem;
+      }
+      .nav {
+        position: absolute;
+        right: 2vw;
+        bottom: 2vh;
+        display: flex;
+        gap: 0.6rem;
+        opacity: 0.7;
+      }
+      .nav button {
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--muted);
+        padding: 0.4rem 0.7rem;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .progress {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 6px;
+        width: 100%;
+        background: rgba(255,255,255,0.08);
+      }
+      .progress > div {
+        height: 100%;
+        width: 0%;
+        background: var(--accent);
+        transition: width 200ms ease;
+      }
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+      }
+      @media (max-width: 900px) {
+        .two-col { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="deck" id="deck">
+      <section class="slide active">
+        <div>
+          <span class="badge">ADS-B Flugzeug-Tracker</span>
+        </div>
+        <div>
+          <h1>ADS-B Flugzeug-Tracker</h1>
+          <p class="muted">Projektueberblick, Datenfluss und Anwendung</p>
+        </div>
+        <div class="footer">
+          <span>ca. 10 Minuten</span>
+          <span>adsb-dump1090</span>
+        </div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Agenda</h2>
+        </div>
+        <div>
+          <ul>
+            <li>Was ist ADS-B</li>
+            <li>Wie ADS-B funktioniert</li>
+            <li>Wer ADS-B nutzt</li>
+            <li>Projektarchitektur und Datenfluss</li>
+            <li>Backend, Datenbank, Frontend</li>
+            <li>Ausblick</li>
+          </ul>
+        </div>
+        <div class="footer"><span></span><span class="muted">Slide 2</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Was ist ADS-B?</h2>
+        </div>
+        <div>
+          <ul>
+            <li>Automatic Dependent Surveillance - Broadcast</li>
+            <li>Flugzeuge senden regelmaessig Positions- und Zustandsdaten</li>
+            <li>Unverschluesselt, fuer jeden Empfaenger lesbar</li>
+            <li>Kernfelder: HEX, Flight, Lat/Lon, Hoehe, Speed, Kurs, Squawk</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">Fokus: Grundverstaendnis</span><span class="muted">Slide 3</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Wie funktioniert ADS-B?</h2>
+        </div>
+        <div>
+          <ul>
+            <li>GPS und Bord-Sensoren liefern Flugzustand</li>
+            <li>Transponder sendet Daten ueber 1090 MHz (teils 978 MHz)</li>
+            <li>Empfaenger: Bodenstationen, Flugzeuge, Community-Hardware</li>
+            <li>ADS-B Out = senden, ADS-B In = empfangen und anzeigen</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">Technischer Ablauf</span><span class="muted">Slide 4</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Wer nutzt ADS-B?</h2>
+        </div>
+        <div>
+          <ul>
+            <li>Flugsicherung (ATC) fuer Luftraumueberwachung</li>
+            <li>Airlines und Betreiber fuer Flottenueberblick</li>
+            <li>Flughaefen fuer Boden- und Anflugmanagement</li>
+            <li>Forschung, Ausbildung und Hobby-Community</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">Nutzen und Wert</span><span class="muted">Slide 5</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Projektueberblick</h2>
+        </div>
+        <div class="two-col">
+          <div>
+            <p><strong>Backend</strong></p>
+            <ul>
+              <li>Node.js + Express</li>
+              <li>API-Endpunkte fuer Live-Daten und Statistiken</li>
+            </ul>
+          </div>
+          <div>
+            <p><strong>Frontend</strong></p>
+            <ul>
+              <li>Leaflet Live-Karte</li>
+              <li>Chart.js Statistiken</li>
+              <li>Flugsuche mit Routenansicht</li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer"><span class="muted">Gesamtsystem</span><span class="muted">Slide 6</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Datenfluss</h2>
+        </div>
+        <div>
+          <ol>
+            <li>Client ruft <code>/api/aircraft</code> auf</li>
+            <li>Server holt Daten aus <code>config.apiUrl</code></li>
+            <li>Anreicherung mit Foto, Typ, Hersteller</li>
+            <li>Speicherung in SQLite</li>
+            <li>Frontend visualisiert Live und Statistik</li>
+          </ol>
+        </div>
+        <div class="footer"><span class="muted">Pipeline</span><span class="muted">Slide 7</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Backend: Kernlogik</h2>
+        </div>
+        <div>
+          <ul>
+            <li><code>recordAircraftData()</code> speichert Sichtungen</li>
+            <li>Dedupe-Zeitfenster pro HEX (<code>dedupeSeconds</code>)</li>
+            <li>Fehlertolerante API-Requests mit Timeouts</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">server.js</span><span class="muted">Slide 8</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Anreicherung</h2>
+        </div>
+        <div>
+          <ul>
+            <li>Foto: planespotters.net per HEX</li>
+            <li>Typ und Hersteller: hexdb.io</li>
+            <li>Ergebnis: bessere UX und bessere Statistik</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">Mehr Kontext pro Sichtung</span><span class="muted">Slide 9</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Datenbank</h2>
+        </div>
+        <div>
+          <ul>
+            <li>SQLite Datei: <code>stats.db</code></li>
+            <li>Tabelle: <code>aircraft_history</code></li>
+            <li>Speichert jede Sichtung mit Zeitstempel</li>
+            <li>Basis fuer Statistiken und Flugsuche</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">database.js</span><span class="muted">Slide 10</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>API-Endpunkte</h2>
+        </div>
+        <div>
+          <ul>
+            <li><code>GET /api/aircraft</code> Live-Daten, Speicherung</li>
+            <li><code>GET /api/aircraft/current</code> reduzierte Sicht</li>
+            <li><code>GET /api/statistics</code> Aggregationen</li>
+            <li><code>GET /api/flights/search</code> Flug + Datum</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">REST API</span><span class="muted">Slide 11</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Frontend</h2>
+        </div>
+        <div>
+          <ul>
+            <li>Live-Karte (Leaflet) mit Flugzeugmarkern</li>
+            <li>Statistiken (Chart.js) fuer Trends und Top-Listen</li>
+            <li>Flugsuche mit Route und Tabelle</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">public/</span><span class="muted">Slide 12</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Qualitaet und Betrieb</h2>
+        </div>
+        <div>
+          <ul>
+            <li>Time-out und Logging fuer externe Dienste</li>
+            <li>Datenbank waechst mit jeder Abfrage</li>
+            <li>Dedupe reduziert, aber eliminiert keine Duplikate</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">Betriebsaspekte</span><span class="muted">Slide 13</span></div>
+      </section>
+
+      <section class="slide">
+        <div>
+          <h2>Ausblick</h2>
+        </div>
+        <div>
+          <ul>
+            <li>Backoff/Retry und Caching fuer externe APIs</li>
+            <li>Input-Validierung und Rate-Limiting</li>
+            <li>Jobs fuer regelmaessige Datenerfassung</li>
+            <li>Skalierung auf Postgres bei groesseren Datenmengen</li>
+          </ul>
+        </div>
+        <div class="footer"><span class="muted">Naechste Schritte</span><span class="muted">Slide 14</span></div>
+      </section>
+    </div>
+
+    <div class="nav">
+      <button id="prev">Zurueck</button>
+      <button id="next">Weiter</button>
+    </div>
+    <div class="progress"><div id="bar"></div></div>
+
+    <script>
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const bar = document.getElementById('bar');
+      let index = 0;
+
+      function show(i) {
+        slides[index].classList.remove('active');
+        index = (i + slides.length) % slides.length;
+        slides[index].classList.add('active');
+        bar.style.width = ((index + 1) / slides.length * 100) + '%';
+      }
+
+      document.getElementById('prev').addEventListener('click', () => show(index - 1));
+      document.getElementById('next').addEventListener('click', () => show(index + 1));
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') show(index + 1);
+        if (e.key === 'ArrowLeft' || e.key === 'PageUp') show(index - 1);
+      });
+
+      bar.style.width = '1%';
+    </script>
+  </body>
+</html>

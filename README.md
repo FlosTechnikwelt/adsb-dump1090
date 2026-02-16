@@ -11,20 +11,19 @@
 - **`server.js`**: Haupt-Express-Server, API‑Endpoints, Datenverarbeitung und statische Bereitstellung.
 - **`database.js`**: Initialisierung und Verwaltung der SQLite‑Datenbank; exportiert `db` und `initDb`.
 - **`config.json`**: Konfiguration (z. B. `apiUrl`, Log‑Prefixes).
-- **`data.json`** (optional): Lokale Datenquelle, wird genutzt wenn `apiUrl` nicht gesetzt ist.
 - **`public/`**: Frontend, enthält HTML, CSS und JavaScript (u. a. `index.html`, `search.html`, `statistics.html`, `assets/js/*.js`).
 
 ## Kurzbeschreibung des Ablaufs
 
 1. Serverstart führt `initDb()` aus (`database.js`) — erzeugt Tabelle `aircraft_history`, fügt fehlende Spalten per `ALTER TABLE` hinzu.
-2. `GET /api/aircraft` holt Flugzeugdaten (entweder von externem `config.apiUrl` oder lokal aus `data.json`).
+2. `GET /api/aircraft` holt Flugzeugdaten von der konfigurierten externen API (`config.apiUrl`).
 3. `recordAircraftData()` reichert jeden Flugzeugdatensatz an (Fotos/Typ/Hersteller) und speichert ihn in der Datenbank.
 4. Weitere Endpoints liefern Statistiken (`/api/statistics`) und Suche nach Flügen (`/api/flights/search`).
 5. Statische Dateien in `public/` werden per `express.static()` ausgeliefert; Chart.js wird aus `node_modules` bereitgestellt.
 
 ## Datenquelle und Anreicherung
 
-- **Hauptquelle:** konfigurierbar über `config.json` → `apiUrl` (z. B. Dump1090 JSON). Falls leer: lokale `data.json`.
+- **Hauptquelle:** konfigurierbar über `config.json` → `apiUrl` (z. B. Dump1090 JSON).
 - **Anreicherungen (in `recordAircraftData`)**:
   - Foto: `https://api.planespotters.net/pub/photos/hex/{hex}` (3s Timeout). Falls vorhanden, `photo_url` gesetzt.
   - Typ & Hersteller: `https://hexdb.io/api/v1/aircraft/{hex}` (3s Timeout). Falls vorhanden, `type` und `manufacturer` gesetzt.
@@ -60,7 +59,7 @@
 ## API Endpoints
 
 - `GET /api/aircraft`
-  - Holt aktuelle Flugzeuginformationen (externes API oder `data.json`), reichert an, speichert in DB, antwortet mit JSON.
+  - Holt aktuelle Flugzeuginformationen (externes API), reichert an, speichert in DB, antwortet mit JSON.
 - `GET /api/statistics`
   - Antwort: JSON mit: `uniqueAircraft`, `topAircraft`, `averages`, `sightingsPerHour`, `aircraftTypes`, `topManufacturers`.
 - `GET /api/flights/search?flight=XXX&date=YYYY-MM-DD`
@@ -169,20 +168,20 @@ Um das Projekt lokal auszuführen, folgen Sie diesen Schritten:
     ```
 
 3.  **Konfiguration (`config.json`)**:
-    Erstellen Sie eine Datei `config.json` im Hauptverzeichnis des Projekts. Diese Datei wird verwendet, um die URL Ihrer ADS-B-API zu konfigurieren. Wenn keine `apiUrl` angegeben ist, versucht die Anwendung, Daten aus einer lokalen `data.json` zu lesen (hauptsächlich für Entwicklungszwecke).
+    Erstellen Sie eine Datei `config.json` im Hauptverzeichnis des Projekts. Diese Datei wird verwendet, um die URL Ihrer ADS-B-API zu konfigurieren.
 
     Beispiel für `config.json`:
 
     ```json
     {
-      "apiUrl": "http://localhost:8080/data.json",
+      "apiUrl": "http://localhost:8080/adsb.json",
       "prefixexpress": "[WEBSERVE]: ",
       "prefixconfig": "[CONFIG]: ",
       "prefixdb": "[DB]: "
     }
     ```
 
-    Ersetzen Sie `"http://localhost:8080/data.json"` durch die tatsächliche URL Ihres ADS-B-Datenfeeds (z.B. von dump1090).
+    Ersetzen Sie `"http://localhost:8080/adsb.json"` durch die tatsächliche URL Ihres ADS-B-Datenfeeds (z.B. von dump1090).
 
 4.  **Datenbank initialisieren**:
     Die Datenbank (`stats.db`) und die notwendigen Tabellen werden automatisch beim ersten Start des Servers initialisiert.

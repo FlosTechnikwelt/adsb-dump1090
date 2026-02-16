@@ -130,36 +130,24 @@ const recordAircraftData = async (aircraftList) => {
 };
 
 //API-Endpunkt zum Abrufen von Flugzeugdaten
-//Ruft Daten von der konfigurierten externen API ab oder verwendet eine lokale 'data.json'
+//Ruft Daten von der konfigurierten externen API ab
 //Die abgerufenen Daten werden in der Datenbank gespeichert und an den Client gesendet
 app.get("/api/aircraft", async (req, res) => {
   let data;
-  if (config.apiUrl) {
-    try {
-      const response = await axios.get(config.apiUrl, { timeout: 5000 });
-      data = response.data;
-    } catch (error) {
-      //Error handling
-      console.error(
-        preserve,
-        `Error fetching from external API (${config.apiUrl}):`,
-        error.message,
-      );
-      return res.status(500).send("Error fetching data from external API.");
-    }
-  } else {
-    try {
-      const rawData = fs.readFileSync(
-        path.join(__dirname, "data.json"),
-        "utf8",
-      );
-      data = JSON.parse(rawData);
-      console.log(preserve, "Serving local data.json");
-    } catch (err) {
-      //Error handling
-      console.error(preserve, "Error reading data.json:", err);
-      return res.status(500).send("Error reading data file");
-    }
+  if (!config.apiUrl) {
+    return res.status(500).send("No external API configured.");
+  }
+  try {
+    const response = await axios.get(config.apiUrl, { timeout: 5000 });
+    data = response.data;
+  } catch (error) {
+    //Error handling
+    console.error(
+      preserve,
+      `Error fetching from external API (${config.apiUrl}):`,
+      error.message,
+    );
+    return res.status(500).send("Error fetching data from external API.");
   }
 
   if (data && data.aircraft) {
@@ -174,29 +162,19 @@ app.get("/api/aircraft", async (req, res) => {
 //Gibt nur Flugnummer, Höhe und Geschwindigkeit zurück
 app.get("/api/aircraft/current", async (req, res) => {
   let data;
-  if (config.apiUrl) {
-    try {
-      const response = await axios.get(config.apiUrl, { timeout: 5000 });
-      data = response.data;
-    } catch (error) {
-      console.error(
-        preserve,
-        `Error fetching from external API (${config.apiUrl}):`,
-        error.message,
-      );
-      return res.status(500).send("Error fetching data from external API.");
-    }
-  } else {
-    try {
-      const rawData = fs.readFileSync(
-        path.join(__dirname, "data.json"),
-        "utf8",
-      );
-      data = JSON.parse(rawData);
-    } catch (err) {
-      console.error(preserve, "Error reading data.json:", err);
-      return res.status(500).send("Error reading data file");
-    }
+  if (!config.apiUrl) {
+    return res.status(500).send("No external API configured.");
+  }
+  try {
+    const response = await axios.get(config.apiUrl, { timeout: 5000 });
+    data = response.data;
+  } catch (error) {
+    console.error(
+      preserve,
+      `Error fetching from external API (${config.apiUrl}):`,
+      error.message,
+    );
+    return res.status(500).send("Error fetching data from external API.");
   }
 
   if (data && data.aircraft) {
