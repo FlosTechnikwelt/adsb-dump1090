@@ -4,16 +4,52 @@
 
 const sqlite3 = require("sqlite3").verbose(); //erweiterte Fehlermeldungen #DebugTime
 const path = require("path");
-const dbPath = path.join(__dirname, "stats.db"); //Pfad zur SQLite-Datenbankdatei.
+const fs = require("fs");
 const config = require("./config.json"); //Lädt die Konfigurationsdatei.
 const pre = config.prefixdb || "[DB]: "; //Präfix für Datenbank-Log-Nachrichten.
+const configuredDbPath = process.env.DB_PATH || config.dbPath;
+const dbPath = configuredDbPath
+  ? path.resolve(configuredDbPath)
+  : path.join(__dirname, "stats.db"); //Pfad zur SQLite-Datenbankdatei.
+
+const ensureDbWritable = () => {
+  const dbDir = path.dirname(dbPath);
+  fs.mkdirSync(dbDir, { recursive: true });
+
+  try {
+    fs.accessSync(dbDir, fs.constants.W_OK);
+  } catch (err) {
+    throw new Error(
+      `Database directory is not writable (${dbDir}): ${err.message}`,
+    );
+  }
+
+  if (!fs.existsSync(dbPath)) {
+    fs.closeSync(fs.openSync(dbPath, "a"));
+  }
+
+  try {
+    fs.accessSync(dbPath, fs.constants.W_OK);
+  } catch (_err) {
+    try {
+      fs.chmodSync(dbPath, 0o664);
+      fs.accessSync(dbPath, fs.constants.W_OK);
+    } catch (chmodErr) {
+      throw new Error(
+        `Database file is not writable (${dbPath}). Check owner/permissions: ${chmodErr.message}`,
+      );
+    }
+  }
+};
+
+ensureDbWritable();
 
 // Stellt eine Verbindung zur SQLite-Datenbank her.
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error(pre, "Error opening database:", err.message);
   } else {
-    console.log(pre, "Connected to the SQLite database.");
+    console.log(pre, `Connected to the SQLite database at ${dbPath}.`);
   }
 });
 
