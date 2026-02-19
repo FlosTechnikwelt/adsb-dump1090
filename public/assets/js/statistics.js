@@ -3,64 +3,64 @@
 // Es verwendet Chart.js, um verschiedene Diagramme zu generieren und die UI mit statistischen Werten zu aktualisieren.
 
 document.addEventListener("DOMContentLoaded", () => {
-  let sightingsChart, topAircraftChart, typeChart, manufacturerChart;
+  let sichtungenDiagramm, topFlugzeugeDiagramm, typDiagramm, herstellerDiagramm;
 
   // Funktion zum Abrufen der Statistikdaten von der internen API.
-  const fetchData = async () => {
+  const ladeDaten = async () => {
     try {
-      const response = await fetch("/api/statistics");
-      if (!response.ok) {
+      const antwort = await fetch("/api/statistics");
+      if (!antwort.ok) {
         // Fehlerbehandlung, wenn der HTTP-Status nicht OK ist.
-        throw new Error(`API HTTP-error! Status: ${response.status}`);
+        throw new Error(`API-HTTP-Fehler! Status: ${antwort.status}`);
       }
-      const stats = await response.json(); // Extrahiert die JSON-Daten.
-      updateUI(stats); // Aktualisiert die Benutzeroberfläche mit den abgerufenen Statistiken.
+      const statistiken = await antwort.json(); // Extrahiert die JSON-Daten.
+      aktualisiereOberflaeche(statistiken); // Aktualisiert die Benutzeroberfläche mit den abgerufenen Statistiken.
     } catch (error) {
       // Fehlerbehandlung beim Abrufen der Statistiken.
-      console.error("Could not fetch statistics:", error);
+      console.error("Statistiken konnten nicht geladen werden:", error);
     }
   };
 
   // Funktion zum Aktualisieren der Benutzeroberfläche mit den empfangenen Statistikdaten.
-  const updateUI = (stats) => {
+  const aktualisiereOberflaeche = (statistiken) => {
     // Ermittelt das meistgesehene Flugzeug basierend auf den Flugzeugtypen-Statistiken.
-    const mostSeenAircraft =
-      stats.aircraftTypes?.reduce(
+    const haeufigstesFlugzeug =
+      statistiken.aircraftTypes?.reduce(
         (max, current) => (current.count > max.count ? current : max),
-        stats.aircraftTypes[0],
+        statistiken.aircraftTypes[0],
       ) || {};
 
     // Aktualisiert die Textinhalte der Statistik-Karten.
     document.getElementById("most-seen-aircraft").textContent =
-      `${mostSeenAircraft.type}` || "N/A";
+      `${haeufigstesFlugzeug.type}` || "k. A.";
     document.getElementById("unique-aircraft").textContent =
-      stats.uniqueAircraft || 0;
+      statistiken.uniqueAircraft || 0;
     document.getElementById("avg-altitude").textContent =
-      stats.averages && stats.averages.avg_altitude
-        ? `${Math.round(stats.averages.avg_altitude)} ft`
-        : "N/A";
+      statistiken.averages && statistiken.averages.avg_altitude
+        ? `${Math.round(statistiken.averages.avg_altitude)} ft`
+        : "k. A.";
     document.getElementById("avg-speed").textContent =
-      stats.averages && stats.averages.avg_speed
-        ? `${Math.round(stats.averages.avg_speed)} kts`
-        : "N/A";
+      statistiken.averages && statistiken.averages.avg_speed
+        ? `${Math.round(statistiken.averages.avg_speed)} kts`
+        : "k. A.";
 
     // Erstellt oder aktualisiert das Liniendiagramm für "Sichtungen pro Stunde".
-    if (stats.sightingsPerHour) {
-      const sightingsCtx = document
+    if (statistiken.sightingsPerHour) {
+      const sichtungenKontext = document
         .getElementById("sightings-chart")
         .getContext("2d");
-      const labels = stats.sightingsPerHour.map((s) => new Date(s.hour));
-      const data = stats.sightingsPerHour.map((s) => s.count);
+      const beschriftungen = statistiken.sightingsPerHour.map((s) => new Date(s.hour));
+      const daten = statistiken.sightingsPerHour.map((s) => s.count);
 
-      if (sightingsChart) sightingsChart.destroy(); // Zerstört ein bestehendes Diagramm, um es neu zu zeichnen.
-      sightingsChart = new Chart(sightingsCtx, {
+      if (sichtungenDiagramm) sichtungenDiagramm.destroy(); // Zerstört ein bestehendes Diagramm, um es neu zu zeichnen.
+      sichtungenDiagramm = new Chart(sichtungenKontext, {
         type: "line",
         data: {
-          labels: labels,
+          labels: beschriftungen,
           datasets: [
             {
               label: "Flugzeug-Sichtungen",
-              data: data,
+              data: daten,
               borderColor: "#009fdf", // DESY-Farbe
               backgroundColor: "rgba(0, 84, 159, 0.1)",
               fill: true,
@@ -96,22 +96,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Erstellt oder aktualisiert das Balkendiagramm für die "Top 5 Flugzeuge".
-    if (stats.topAircraft) {
-      const topAircraftCtx = document
+    if (statistiken.topAircraft) {
+      const topFlugzeugeKontext = document
         .getElementById("top-aircraft-chart")
         .getContext("2d");
-      const labels = stats.topAircraft.map((a) => a.hex);
-      const data = stats.topAircraft.map((a) => a.count);
+      const beschriftungen = statistiken.topAircraft.map((a) => a.hex);
+      const daten = statistiken.topAircraft.map((a) => a.count);
 
-      if (topAircraftChart) topAircraftChart.destroy(); // Zerstört ein bestehendes Diagramm.
-      topAircraftChart = new Chart(topAircraftCtx, {
+      if (topFlugzeugeDiagramm) topFlugzeugeDiagramm.destroy(); // Zerstört ein bestehendes Diagramm.
+      topFlugzeugeDiagramm = new Chart(topFlugzeugeKontext, {
         type: "bar",
         data: {
-          labels: labels,
+          labels: beschriftungen,
           datasets: [
             {
               label: "Anzahl Sichtungen",
-              data: data,
+              data: daten,
               backgroundColor: [
                 "rgba(0, 105, 135, 1)", // DESY-Farben
                 "rgba(0, 177, 170, 1)", // DESY-Farben
@@ -142,20 +142,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Erstellt oder aktualisiert das Tortendiagramm für "Flugzeugtypen".
-    if (stats.aircraftTypes) {
-      const typeCtx = document.getElementById("type-chart").getContext("2d");
-      const labels = stats.aircraftTypes.map((t) => t.type);
-      const data = stats.aircraftTypes.map((t) => t.count);
+    if (statistiken.aircraftTypes) {
+      const typKontext = document.getElementById("type-chart").getContext("2d");
+      const beschriftungen = statistiken.aircraftTypes.map((t) => t.type);
+      const daten = statistiken.aircraftTypes.map((t) => t.count);
 
-      if (typeChart) typeChart.destroy(); // Zerstört ein bestehendes Diagramm.
-      typeChart = new Chart(typeCtx, {
+      if (typDiagramm) typDiagramm.destroy(); // Zerstört ein bestehendes Diagramm.
+      typDiagramm = new Chart(typKontext, {
         type: "doughnut",
         data: {
-          labels: labels,
+          labels: beschriftungen,
           datasets: [
             {
               label: "Flugzeugtypen",
-              data: data,
+              data: daten,
               backgroundColor: [
                 "rgba(0, 74, 110, 1)", // DESY-Farben
                 "rgba(0, 123, 200, 1)", // DESY-Farben
@@ -184,22 +184,22 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Erstellt oder aktualisiert das Tortendiagramm für die "Top 5 Hersteller".
-    if (stats.topManufacturers) {
-      const manufacturerCtx = document
+    if (statistiken.topManufacturers) {
+      const herstellerKontext = document
         .getElementById("manufacturer-chart")
         .getContext("2d");
-      const labels = stats.topManufacturers.map((m) => m.manufacturer);
-      const data = stats.topManufacturers.map((m) => m.count);
+      const beschriftungen = statistiken.topManufacturers.map((m) => m.manufacturer);
+      const daten = statistiken.topManufacturers.map((m) => m.count);
 
-      if (manufacturerChart) manufacturerChart.destroy(); // Zerstört ein bestehendes Diagramm.
-      manufacturerChart = new Chart(manufacturerCtx, {
+      if (herstellerDiagramm) herstellerDiagramm.destroy(); // Zerstört ein bestehendes Diagramm.
+      herstellerDiagramm = new Chart(herstellerKontext, {
         type: "doughnut",
         data: {
-          labels: labels,
+          labels: beschriftungen,
           datasets: [
             {
               label: "Top 5 Hersteller",
-              data: data,
+              data: daten,
               backgroundColor: [
                 "rgba(0, 74, 110, 1)", // DESY-Farben
                 "rgba(0, 123, 200, 1)", // DESY-Farben
@@ -229,6 +229,6 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Ruft die Daten beim Laden der Seite einmal ab und aktualisiert sie dann alle 10 Sekunden.
-  fetchData();
-  setInterval(fetchData, 10000); // Aktualisiert die Daten alle 10 Sekunden.
+  ladeDaten();
+  setInterval(ladeDaten, 10000); // Aktualisiert die Daten alle 10 Sekunden.
 });

@@ -7,34 +7,34 @@ const express = require("express");
 const path = require("path");
 const fs = require("fs");
 const axios = require("axios");
-const { db, initDb } = require("./database"); //Datenbank Modul importieren
+const { db, initDb: initialisiereDb } = require("./database"); //Datenbank Modul importieren
 const app = express();
-const preserve = require("./config.json").prefixexpress || "[WEBSERVE]: ";
-const preconfig = require("./config.json").prefixconfig || "[CONFIG]: ";
+const praefixExpress = require("./config.json").prefixexpress || "[WEBSERVE]: ";
+const praefixKonfig = require("./config.json").prefixconfig || "[CONFIG]: ";
 
-let config = {
+let konfiguration = {
   apiUrl: "",
 };
 
 //Lädt die Konfiguration aus der 'config.json'-Datei
 //Wenn die Datei nicht gefunden wird, wird eine Warnung ausgegeben und es wird versucht, lokale Daten zu verwenden
 try {
-  const rawConfig = fs.readFileSync(path.join(__dirname, "config.json"));
-  config = JSON.parse(rawConfig);
-  console.log(preconfig, "Configuration loaded");
+  const roheKonfiguration = fs.readFileSync(path.join(__dirname, "config.json"));
+  konfiguration = JSON.parse(roheKonfiguration);
+  console.log(praefixKonfig, "Konfiguration geladen");
 } catch (error) {
-  //Error handling
-  console.warn(preconfig, "Could not read config.json, mybe it is missing?",);
+  //Fehlerbehandlung
+  console.warn(praefixKonfig, "config.json konnte nicht gelesen werden. Fehlt die Datei?");
 }
 
-const dedupeWindowMs = Number.isFinite(config.dedupeSeconds)
-  ? Math.max(0, config.dedupeSeconds) * 1000
+const duplikatFensterMs = Number.isFinite(konfiguration.dedupeSeconds)
+  ? Math.max(0, konfiguration.dedupeSeconds) * 1000
   : 60 * 1000;
-const lastRecordedAt = new Map();
-const aircraftMetaByHex = new Map();
-const dbAll = (sql, params = []) =>
+const zuletztGespeichertUm = new Map();
+const flugzeugMetaNachHex = new Map();
+const dbAlle = (sqlAnweisung, parameter = []) =>
   new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
+    db.all(sqlAnweisung, parameter, (err, rows) => {
       if (err) {
         reject(err);
         return;
@@ -43,12 +43,12 @@ const dbAll = (sql, params = []) =>
     });
   });
 
-const mergeAircraftMeta = (hex, meta) => {
+const fuehreFlugzeugMetaZusammen = (hex, meta) => {
   if (!hex) {
     return;
   }
 
-  const existing = aircraftMetaByHex.get(hex) || {};
+  const existing = flugzeugMetaNachHex.get(hex) || {};
   const next = { ...existing };
 
   if (meta.photo_url) {
@@ -62,36 +62,36 @@ const mergeAircraftMeta = (hex, meta) => {
   }
 
   if (Object.keys(next).length > 0) {
-    aircraftMetaByHex.set(hex, next);
+    flugzeugMetaNachHex.set(hex, next);
   }
 };
 
-const applyAircraftMeta = (plane) => {
-  if (!plane || !plane.hex) {
+const wendeFlugzeugMetaAn = (flugzeug) => {
+  if (!flugzeug || !flugzeug.hex) {
     return;
   }
 
-  const cached = aircraftMetaByHex.get(plane.hex);
+  const cached = flugzeugMetaNachHex.get(flugzeug.hex);
   if (!cached) {
     return;
   }
 
-  if (!plane.photo_url && cached.photo_url) {
-    plane.photo_url = cached.photo_url;
+  if (!flugzeug.photo_url && cached.photo_url) {
+    flugzeug.photo_url = cached.photo_url;
   }
-  if (!plane.t && cached.type) {
-    plane.t = cached.type;
+  if (!flugzeug.t && cached.type) {
+    flugzeug.t = cached.type;
   }
-  if (!plane.manufacturer && cached.manufacturer) {
-    plane.manufacturer = cached.manufacturer;
+  if (!flugzeug.manufacturer && cached.manufacturer) {
+    flugzeug.manufacturer = cached.manufacturer;
   }
 };
 
-const hydrateAircraftMetaFromDb = async (aircraftList) => {
+const ladeFlugzeugMetaAusDb = async (flugzeugListe) => {
   const hexes = [
     ...new Set(
-      aircraftList
-        .map((plane) => plane.hex)
+      flugzeugListe
+        .map((flugzeug) => flugzeug.hex)
         .filter((hex) => typeof hex === "string" && hex.length > 0),
     ),
   ];
@@ -101,7 +101,7 @@ const hydrateAircraftMetaFromDb = async (aircraftList) => {
   }
 
   const placeholders = hexes.map(() => "?").join(", ");
-  const rows = await dbAll(
+  const rows = await dbAlle(
     `
       SELECT hex, type, manufacturer, photo_url
       FROM aircraft_history
@@ -112,7 +112,7 @@ const hydrateAircraftMetaFromDb = async (aircraftList) => {
   );
 
   for (const row of rows) {
-    mergeAircraftMeta(row.hex, {
+    fuehreFlugzeugMetaZusammen(row.hex, {
       photo_url: row.photo_url,
       type: row.type,
       manufacturer: row.manufacturer,
@@ -122,94 +122,94 @@ const hydrateAircraftMetaFromDb = async (aircraftList) => {
 
 //Funktion zum Speichern von Flugzeugdaten in der Datenbank und Anreicherung mit externen Informationen
 //Diese Daten werden später für Analysen, Abfragen und Statistiken verwendet
-const recordAircraftData = async (aircraftList) => {
-  for (const plane of aircraftList) {
-    if (plane.hex) {
-      applyAircraftMeta(plane);
-      const cachedMeta = aircraftMetaByHex.get(plane.hex) || {};
+const speichereFlugzeugDaten = async (flugzeugListe) => {
+  for (const flugzeug of flugzeugListe) {
+    if (flugzeug.hex) {
+      wendeFlugzeugMetaAn(flugzeug);
+      const zwischengespeicherteMeta = flugzeugMetaNachHex.get(flugzeug.hex) || {};
 
-      const lastSeen = lastRecordedAt.get(plane.hex);
-      const now = Date.now();
-      let aircraftType = plane.t || cachedMeta.type || null;
-      let manufacturer = plane.manufacturer || cachedMeta.manufacturer || null;
-      let photoUrl = plane.photo_url || cachedMeta.photo_url || null;
+      const zuletztGesehen = zuletztGespeichertUm.get(flugzeug.hex);
+      const jetzt = Date.now();
+      let flugzeugTyp = flugzeug.t || zwischengespeicherteMeta.type || null;
+      let hersteller = flugzeug.manufacturer || zwischengespeicherteMeta.manufacturer || null;
+      let fotoUrl = flugzeug.photo_url || zwischengespeicherteMeta.photo_url || null;
 
-      if (lastSeen && now - lastSeen < dedupeWindowMs) {
-        plane.t = aircraftType;
-        plane.manufacturer = manufacturer;
-        plane.photo_url = photoUrl;
+      if (zuletztGesehen && jetzt - zuletztGesehen < duplikatFensterMs) {
+        flugzeug.t = flugzeugTyp;
+        flugzeug.manufacturer = hersteller;
+        flugzeug.photo_url = fotoUrl;
         continue;
       }
-      lastRecordedAt.set(plane.hex, now);
+      zuletztGespeichertUm.set(flugzeug.hex, jetzt);
 
       //Versucht, ein Flugzeugfoto von planespotters.net abzurufen
-      if (!photoUrl) {
+      if (!fotoUrl) {
         try {
-          const photoResponse = await axios.get(
-            `https://api.planespotters.net/pub/photos/hex/${plane.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
+          const fotoAntwort = await axios.get(
+            `https://api.planespotters.net/pub/photos/hex/${flugzeug.hex}`, //API für Fotos eines Flugzeugs anhand der HEX aus den ADS-B Daten
             { timeout: 30000 }, //Setzt den Timeout auf 3 Sekunden
           );
-          if (photoResponse.data.photos && photoResponse.data.photos.length > 0) {
-            photoUrl = photoResponse.data.photos[0].thumbnail_large.src;
+          if (fotoAntwort.data.photos && fotoAntwort.data.photos.length > 0) {
+            fotoUrl = fotoAntwort.data.photos[0].thumbnail_large.src;
           }
         } catch (error) {
-          //Error handling
+          //Fehlerbehandlung
           console.warn(
-            preserve,
-            `Error fetching photo from planespotters.net for hex ${plane.hex}:`,
+            praefixExpress,
+            `Fehler beim Laden des Fotos von planespotters.net fuer HEX ${flugzeug.hex}:`,
             error.message,
           );
         }
       }
-      plane.photo_url = photoUrl;
+      flugzeug.photo_url = fotoUrl;
 
       //Wenn der Flugzeugtyp noch nicht bekannt ist, versucht die Funktion, diesen und den Hersteller von hexdb.io abzurufen
-      if (!aircraftType) {
+      if (!flugzeugTyp) {
         try {
-          const hexdbResponse = await axios.get(
-            `https://hexdb.io/api/v1/aircraft/${plane.hex}`, //API für das Abfragen von Flugzeugtyp und Hersteller anhand der HEX
+          const hexdbAntwort = await axios.get(
+            `https://hexdb.io/api/v1/aircraft/${flugzeug.hex}`, //API für das Abfragen von Flugzeugtyp und Hersteller anhand der HEX
             { timeout: 3000 },
           );
-          if (hexdbResponse.data) {
-            aircraftType = hexdbResponse.data.Type || aircraftType;
-            manufacturer = hexdbResponse.data.Manufacturer || manufacturer;
+          if (hexdbAntwort.data) {
+            flugzeugTyp = hexdbAntwort.data.Type || flugzeugTyp;
+            hersteller = hexdbAntwort.data.Manufacturer || hersteller;
             //Daten auch im Objekt speichern
-            plane.t = aircraftType;
-            plane.manufacturer = manufacturer;
+            flugzeug.t = flugzeugTyp;
+            flugzeug.manufacturer = hersteller;
           }
         } catch (error) {
-          //Error handling
+          //Fehlerbehandlung
           console.warn(
-            preserve,
-            `Error fetching from hexdb.io for hex ${plane.hex}:`,
+            praefixExpress,
+            `Fehler beim Abruf von hexdb.io fuer HEX ${flugzeug.hex}:`,
             error.message,
           );
         }
       }
 
-      plane.t = aircraftType;
-      plane.manufacturer = manufacturer;
-      mergeAircraftMeta(plane.hex, {
-        photo_url: photoUrl,
-        type: aircraftType,
-        manufacturer,
+      flugzeug.t = flugzeugTyp;
+      flugzeug.manufacturer = hersteller;
+      fuehreFlugzeugMetaZusammen(flugzeug.hex, {
+        photo_url: fotoUrl,
+        type: flugzeugTyp,
+        manufacturer: hersteller,
       });
 
       //Fügt die angereicherten Flugzeugdaten in die Datenbank ein
       db.run(
         "INSERT INTO aircraft_history (hex, flight, alt_baro, gs, track, lat, lon, squawk, type, manufacturer, photo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
-          plane.hex, //Muss vorhanden sein
-          plane.flight || null, //Optionale angabe
-          plane.alt_baro || null, //Optionale angabe
-          plane.gs || null, //Optionale angabe
-          plane.track || null, //Optionale angabe
-          plane.lat || null, //Optionale angabe
-          plane.lon || null, //Optionale angabe
-          plane.squawk || null, //Optionale angabe
-          aircraftType, //Optionale angabe
-          manufacturer, //Optionale angabe
-          photoUrl, //Optionale angabe
+          flugzeug.hex, //Muss vorhanden sein
+          flugzeug.flight || null, //Optionale angabe
+          flugzeug.alt_baro || null, //Optionale angabe
+          flugzeug.gs || null, //Optionale angabe
+          flugzeug.track || null, //Optionale angabe
+          flugzeug.lat || null, //Optionale angabe
+          flugzeug.lon || null, //Optionale angabe
+          flugzeug.squawk || null, //Optionale angabe
+          flugzeugTyp, //Optionale angabe
+          hersteller, //Optionale angabe
+          fotoUrl, //Optionale angabe
           //Ziel?
           //Herkunft?
           //Dauer?
@@ -217,10 +217,10 @@ const recordAircraftData = async (aircraftList) => {
         ],
         function (err) {
           if (err) {
-            //Error handling
+            //Fehlerbehandlung
             console.error(
-              preserve,
-              `Error inserting data for hex ${plane.hex}:`,
+              praefixExpress,
+              `Fehler beim Speichern der Daten fuer HEX ${flugzeug.hex}:`,
               err.message,
             );
           }
@@ -235,34 +235,34 @@ const recordAircraftData = async (aircraftList) => {
 //Die abgerufenen Daten werden in der Datenbank gespeichert und an den Client gesendet
 app.get("/api/aircraft", async (req, res) => {
   let data;
-  if (!config.apiUrl) {
-    return res.status(500).send("No external API configured.");
+  if (!konfiguration.apiUrl) {
+    return res.status(500).send("Keine externe API konfiguriert.");
   }
   try {
-    const response = await axios.get(config.apiUrl, { timeout: 5000 });
-    data = response.data;
+    const antwort = await axios.get(konfiguration.apiUrl, { timeout: 5000 });
+    data = antwort.data;
   } catch (error) {
-    //Error handling
+    //Fehlerbehandlung
     console.error(
-      preserve,
-      `Error fetching from external API (${config.apiUrl}):`,
+      praefixExpress,
+      `Fehler beim Abruf der externen API (${konfiguration.apiUrl}):`,
       error.message,
     );
-    return res.status(500).send("Error fetching data from external API.");
+    return res.status(500).send("Fehler beim Abrufen der Daten von der externen API.");
   }
 
   if (data && data.aircraft) {
     try {
-      await hydrateAircraftMetaFromDb(data.aircraft);
+      await ladeFlugzeugMetaAusDb(data.aircraft);
     } catch (error) {
-      console.warn(preserve, "Could not hydrate aircraft metadata from DB:", error.message);
+      console.warn(praefixExpress, "Flugzeug-Metadaten konnten nicht aus der DB geladen werden:", error.message);
     }
 
-    data.aircraft.forEach(applyAircraftMeta);
+    data.aircraft.forEach(wendeFlugzeugMetaAn);
     res.json(data);
 
-    recordAircraftData(data.aircraft).catch((error) => {
-      console.error(preserve, "Error enriching/storing aircraft data:", error.message);
+    speichereFlugzeugDaten(data.aircraft).catch((error) => {
+      console.error(praefixExpress, "Fehler bei Anreicherung/Speicherung von Flugzeugdaten:", error.message);
     });
   } else {
     res.json({ aircraft: [] });
@@ -273,28 +273,28 @@ app.get("/api/aircraft", async (req, res) => {
 //Gibt nur Flugnummer, Höhe und Geschwindigkeit zurück
 app.get("/api/aircraft/current", async (req, res) => {
   let data;
-  if (!config.apiUrl) {
-    return res.status(500).send("No external API configured.");
+  if (!konfiguration.apiUrl) {
+    return res.status(500).send("Keine externe API konfiguriert.");
   }
   try {
-    const response = await axios.get(config.apiUrl, { timeout: 5000 });
-    data = response.data;
+    const antwort = await axios.get(konfiguration.apiUrl, { timeout: 5000 });
+    data = antwort.data;
   } catch (error) {
     console.error(
-      preserve,
-      `Error fetching from external API (${config.apiUrl}):`,
+      praefixExpress,
+      `Fehler beim Abruf der externen API (${konfiguration.apiUrl}):`,
       error.message,
     );
-    return res.status(500).send("Error fetching data from external API.");
+    return res.status(500).send("Fehler beim Abrufen der Daten von der externen API.");
   }
 
   if (data && data.aircraft) {
-    const simplifiedAircraft = data.aircraft.map((plane) => ({
-      flight: plane.flight || "N/A",
-      altitude: plane.alt_baro,
-      speed: plane.gs,
+    const vereinfachteFlugzeuge = data.aircraft.map((flugzeug) => ({
+      flight: flugzeug.flight || "k. A.",
+      altitude: flugzeug.alt_baro,
+      speed: flugzeug.gs,
     }));
-    res.json(simplifiedAircraft);
+    res.json(vereinfachteFlugzeuge);
   } else {
     res.json([]);
   }
@@ -304,16 +304,16 @@ app.get("/api/aircraft/current", async (req, res) => {
 //Führt mehrere Datenbankabfragen parallel aus, um verschiedene Statistiken zu sammeln
 //und gibt diese als JSON-Antwort zurück
 app.get("/api/statistics", (req, res) => {
-  const stats = {};
-  const queries = [
+  const statistik = {};
+  const abfragen = [
     //Gesamtzahl der einzigartigen Flugzeuge
     new Promise((resolve, reject) => {
       db.get(
         "SELECT COUNT(DISTINCT hex) as count FROM aircraft_history",
         (err, row) => {
-          //Error handling
+          //Fehlerbehandlung
           if (err) reject(err);
-          stats.uniqueAircraft = row.count;
+          statistik.uniqueAircraft = row.count;
           resolve();
         },
       );
@@ -323,9 +323,9 @@ app.get("/api/statistics", (req, res) => {
       db.all(
         "SELECT hex, COUNT(hex) as count FROM aircraft_history GROUP BY hex ORDER BY count DESC LIMIT 5",
         (err, rows) => {
-          //Error handling
+          //Fehlerbehandlung
           if (err) reject(err);
-          stats.topAircraft = rows;
+          statistik.topAircraft = rows;
           resolve();
         },
       );
@@ -336,9 +336,9 @@ app.get("/api/statistics", (req, res) => {
       db.get(
         "SELECT AVG(alt_baro) as avg_altitude, AVG(gs) as avg_speed FROM aircraft_history WHERE alt_baro > 0 AND gs > 0",
         (err, row) => {
-          //Error handling
+          //Fehlerbehandlung
           if (err) reject(err);
-          stats.averages = row;
+          statistik.averages = row;
           resolve();
         },
       );
@@ -349,9 +349,9 @@ app.get("/api/statistics", (req, res) => {
       db.all(
         "SELECT strftime('%Y-%m-%d %H:00:00', timestamp) as hour, COUNT(*) as count FROM aircraft_history GROUP BY hour ORDER BY hour",
         (err, rows) => {
-          //Error handling
+          //Fehlerbehandlung
           if (err) reject(err);
-          stats.sightingsPerHour = rows;
+          statistik.sightingsPerHour = rows;
           resolve();
         },
       );
@@ -362,9 +362,9 @@ app.get("/api/statistics", (req, res) => {
       db.all(
         "SELECT type, COUNT(*) as count FROM aircraft_history WHERE type IS NOT NULL GROUP BY type ORDER BY count DESC",
         (err, rows) => {
-          //Error handling
+          //Fehlerbehandlung
           if (err) reject(err);
-          stats.aircraftTypes = rows;
+          statistik.aircraftTypes = rows;
           resolve();
         },
       );
@@ -375,21 +375,21 @@ app.get("/api/statistics", (req, res) => {
       db.all(
         "SELECT manufacturer, COUNT(*) as count FROM aircraft_history WHERE manufacturer IS NOT NULL GROUP BY manufacturer ORDER BY count DESC LIMIT 5",
         (err, rows) => {
-          //Error handling
+          //Fehlerbehandlung
           if (err) reject(err);
-          stats.topManufacturers = rows;
+          statistik.topManufacturers = rows;
           resolve();
         },
       );
     }),
   ];
 
-  Promise.all(queries)
-    .then(() => res.json(stats))
+  Promise.all(abfragen)
+    .then(() => res.json(statistik))
     .catch((err) => {
-      //Error handling
-      console.error(preserve, "Error querying statistics:", err);
-      res.status(500).send("Error querying database for statistics.");
+      //Fehlerbehandlung
+      console.error(praefixExpress, "Fehler beim Abrufen der Statistik:", err);
+      res.status(500).send("Fehler beim Abfragen der Statistikdatenbank.");
     });
 });
 
@@ -401,24 +401,24 @@ app.get("/api/flights/search", (req, res) => {
 
   //Validierung der Eingaben: Wenn eine fehlt, wird ein 400 Bad Request zurückgegeben
   if (!flight || !date) {
-    return res.status(400).send("Flight number and date are required.");
+    return res.status(400).send("Flugnummer und Datum sind erforderlich.");
   }
 
   //Entfernt Leerzeichen von der Flugnummer
-  const trimmedFlight = flight.trim();
+  const bereinigterFlug = flight.trim();
 
   //Datenbank abfrage zum suchen von Flügen
-  const sql = `
+  const sqlAnweisung = `
         SELECT * FROM aircraft_history
         WHERE trim(flight) = ? AND date(timestamp) = ?
         ORDER BY timestamp ASC
     `;
 
-  db.all(sql, [trimmedFlight, date], (err, rows) => {
-    //Error handling
+  db.all(sqlAnweisung, [bereinigterFlug, date], (err, rows) => {
+    //Fehlerbehandlung
     if (err) {
-      console.error(preserve, "Error searching flights:", err);
-      return res.status(500).send("Error searching database.");
+      console.error(praefixExpress, "Fehler bei der Flugsuche:", err);
+      return res.status(500).send("Fehler bei der Datenbanksuche.");
     }
     //Gibt die Ergebnisse als JSON zurück auch wenn keine gefunden wurden (also ein leeres Array).
     res.json(rows);
@@ -456,28 +456,28 @@ app.get(/^[^.]*$/, (req, res) => {
 });
 
 //Startet den Webserver und lauscht auf dem konfigurierten Port.
-const startServer = async () => {
+const starteServer = async () => {
   try {
     // Initialisiert die Datenbank vor dem Start des Webservers.
-    await initDb();
+    await initialisiereDb();
   } catch (error) {
-    console.error(preserve, "Database initialization failed:", error.message);
+    console.error(praefixExpress, "Datenbank-Initialisierung fehlgeschlagen:", error.message);
     process.exit(1);
   }
 
-  app.listen(config.port, config.listenon, () => {
-    console.log(preserve, `Server listening on ${config.listenon}:${config.port}`);
-    console.log(preserve, "DESY-ADSB Flight Tracker is up and running!");
-    if (config.apiUrl) {
-      console.log(preserve, `Proxying API requests to: ${config.apiUrl}`);
-      console.log(preserve, "⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎ Ready for take off! ⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎");
+  app.listen(konfiguration.port, konfiguration.listenon, () => {
+    console.log(praefixExpress, `Server lauscht auf ${konfiguration.listenon}:${konfiguration.port}`);
+    console.log(praefixExpress, "DESY-ADSB Flight Tracker wurde gestartet.");
+    if (konfiguration.apiUrl) {
+      console.log(praefixExpress, `API-Anfragen werden weitergeleitet an: ${konfiguration.apiUrl}`);
+      console.log(praefixExpress, "⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎ Bereit zum Start! ⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎");
     } else {
       console.error(
-        preserve,
-        "No apiUrl configured",
+        praefixExpress,
+        "Keine apiUrl konfiguriert",
       );
     }
   });
 };
 
-startServer();
+starteServer();

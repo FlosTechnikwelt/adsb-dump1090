@@ -3,14 +3,14 @@
 // Es verarbeitet Benutzereingaben, sendet Suchanfragen an den Server und zeigt die Ergebnisse auf einer Karte und in einer Tabelle an.
 
 document.addEventListener("DOMContentLoaded", () => {
-  const searchForm = document.getElementById("search-form");
-  const flightNumberInput = document.getElementById("flight-number");
-  const flightDateInput = document.getElementById("flight-date");
-  const resultsContainer = document.getElementById("results-container");
-  const noResultsAlert = document.getElementById("no-results");
-  const resultsHeading = document.getElementById("results-heading");
-  const flightDetailsContainer = document.getElementById("flight-details");
-  flightDateInput.valueAsDate = new Date(); // Setzt das Standarddatum auf das heutige Datum.
+  const suchFormular = document.getElementById("search-form");
+  const flugnummerEingabe = document.getElementById("flight-number");
+  const flugdatumEingabe = document.getElementById("flight-date");
+  const ergebnisContainer = document.getElementById("results-container");
+  const keineErgebnisseHinweis = document.getElementById("no-results");
+  const ergebnisUeberschrift = document.getElementById("results-heading");
+  const flugDetailsContainer = document.getElementById("flight-details");
+  flugdatumEingabe.valueAsDate = new Date(); // Setzt das Standarddatum auf das heutige Datum.
 
   // Initialisiert die Leaflet-Karte für die Anzeige der Suchergebnisse.
   const map = L.map("map");
@@ -22,56 +22,56 @@ document.addEventListener("DOMContentLoaded", () => {
     },
   ).addTo(map);
 
-  let flightPathPolyline = null; // Speichert die Polylinie des Flugpfads.
+  let flugpfadLinie = null; // Speichert die Polylinie des Flugpfads.
   let startMarker = null; // Speichert den Startmarker des Flugpfads.
   let endMarker = null; // Speichert den Endmarker des Flugpfads.
 
-  searchForm.addEventListener("submit", async (e) => {
+  suchFormular.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const flightNumber = flightNumberInput.value;
-    const flightDate = flightDateInput.value;
+    const flugnummer = flugnummerEingabe.value;
+    const flugdatum = flugdatumEingabe.value;
 
-    resultsContainer.classList.add("d-none");
-    noResultsAlert.classList.add("d-none");
-    flightDetailsContainer.innerHTML = "";
-    if (flightPathPolyline) map.removeLayer(flightPathPolyline);
+    ergebnisContainer.classList.add("d-none");
+    keineErgebnisseHinweis.classList.add("d-none");
+    flugDetailsContainer.innerHTML = "";
+    if (flugpfadLinie) map.removeLayer(flugpfadLinie);
     if (startMarker) map.removeLayer(startMarker);
     if (endMarker) map.removeLayer(endMarker);
 
     try {
-      const response = await fetch(
-        `/api/flights/search?flight=${encodeURIComponent(flightNumber)}&date=${flightDate}`,
+      const antwort = await fetch(
+        `/api/flights/search?flight=${encodeURIComponent(flugnummer)}&date=${flugdatum}`,
       );
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!antwort.ok) {
+        throw new Error(`HTTP-Fehler! Status: ${antwort.status}`);
       }
-      const flightData = await response.json();
+      const flugdaten = await antwort.json();
 
-      if (flightData.length > 0) {
-        displayResults(flightData, flightNumber, flightDate);
+      if (flugdaten.length > 0) {
+        zeigeErgebnisseAn(flugdaten, flugnummer, flugdatum);
       } else {
-        noResultsAlert.classList.remove("d-none");
+        keineErgebnisseHinweis.classList.remove("d-none");
       }
     } catch (error) {
-      console.error("Error flight search:", error);
-      noResultsAlert.textContent =
+      console.error("Fehler bei der Flugsuche:", error);
+      keineErgebnisseHinweis.textContent =
         "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.";
-      noResultsAlert.classList.remove("d-none");
+      keineErgebnisseHinweis.classList.remove("d-none");
     }
   });
 
-  function displayResults(data, flightNumber, flightDate) {
-    resultsHeading.textContent = `Ergebnisse für Flug ${flightNumber.toUpperCase()} am ${new Date(flightDate).toLocaleDateString("de-DE")}`;
-    resultsContainer.classList.remove("d-none");
+  function zeigeErgebnisseAn(daten, flugnummer, flugdatum) {
+    ergebnisUeberschrift.textContent = `Ergebnisse fuer Flug ${flugnummer.toUpperCase()} am ${new Date(flugdatum).toLocaleDateString("de-DE")}`;
+    ergebnisContainer.classList.remove("d-none");
 
     //Karte
-    const latLngs = data
+    const latLngs = daten
       .filter((d) => d.lat && d.lon)
       .map((d) => [d.lat, d.lon]);
 
     if (latLngs.length > 0) {
-      flightPathPolyline = L.polyline(latLngs, { color: "#00549F" }).addTo(map);
-      map.fitBounds(flightPathPolyline.getBounds().pad(0.1));
+      flugpfadLinie = L.polyline(latLngs, { color: "#00549F" }).addTo(map);
+      map.fitBounds(flugpfadLinie.getBounds().pad(0.1));
 
       //start and end markers
       startMarker = L.marker(latLngs[0]).addTo(map).bindPopup("Start");
@@ -82,9 +82,9 @@ document.addEventListener("DOMContentLoaded", () => {
       map.setView([53.578, 9.882], 10);
     }
 
-    const table = document.createElement("table");
-    table.className = "table table-striped table-sm";
-    table.innerHTML = `
+    const tabelle = document.createElement("table");
+    tabelle.className = "table table-striped table-sm";
+    tabelle.innerHTML = `
             <thead>
                 <tr>
                     <th>Zeit</th>
@@ -96,16 +96,16 @@ document.addEventListener("DOMContentLoaded", () => {
             <tbody>
             </tbody>
         `;
-    const tbody = table.querySelector("tbody");
-    data.forEach((point) => {
-      const row = tbody.insertRow();
-      row.innerHTML = `
-                <td>${new Date(point.timestamp).toLocaleTimeString("de-DE")}</td>
-                <td>${point.alt_baro ? `${point.alt_baro} ft` : "N/A"}</td>
-                <td>${point.gs ? `${point.gs} kts` : "N/A"}</td>
-                <td>${point.track ? `${point.track}°` : "N/A"}</td>
+    const tabellenInhalt = tabelle.querySelector("tbody");
+    daten.forEach((punkt) => {
+      const zeile = tabellenInhalt.insertRow();
+      zeile.innerHTML = `
+                <td>${new Date(punkt.timestamp).toLocaleTimeString("de-DE")}</td>
+                <td>${punkt.alt_baro ? `${punkt.alt_baro} ft` : "k. A."}</td>
+                <td>${punkt.gs ? `${punkt.gs} kts` : "k. A."}</td>
+                <td>${punkt.track ? `${punkt.track}°` : "k. A."}</td>
             `;
     });
-    flightDetailsContainer.appendChild(table);
+    flugDetailsContainer.appendChild(tabelle);
   }
 });

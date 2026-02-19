@@ -5,51 +5,51 @@
 const sqlite3 = require("sqlite3").verbose(); //erweiterte Fehlermeldungen #DebugTime
 const path = require("path");
 const fs = require("fs");
-const config = require("./config.json"); //Lädt die Konfigurationsdatei.
-const pre = config.prefixdb || "[DB]: "; //Präfix für Datenbank-Log-Nachrichten.
-const configuredDbPath = process.env.DB_PATH || config.dbPath;
-const dbPath = configuredDbPath
-  ? path.resolve(configuredDbPath)
+const konfiguration = require("./config.json"); //Lädt die Konfigurationsdatei.
+const praefixDb = konfiguration.prefixdb || "[DB]: "; //Präfix für Datenbank-Log-Nachrichten.
+const konfigurierterDbPfad = process.env.DB_PATH || konfiguration.dbPath;
+const dbPfad = konfigurierterDbPfad
+  ? path.resolve(konfigurierterDbPfad)
   : path.join(__dirname, "stats.db"); //Pfad zur SQLite-Datenbankdatei.
 
-const ensureDbWritable = () => {
-  const dbDir = path.dirname(dbPath);
-  fs.mkdirSync(dbDir, { recursive: true });
+const stelleBeschreibbareDbSicher = () => {
+  const dbVerzeichnis = path.dirname(dbPfad);
+  fs.mkdirSync(dbVerzeichnis, { recursive: true });
 
   try {
-    fs.accessSync(dbDir, fs.constants.W_OK);
+    fs.accessSync(dbVerzeichnis, fs.constants.W_OK);
   } catch (err) {
     throw new Error(
-      `Database directory is not writable (${dbDir}): ${err.message}`,
+      `Datenbank-Verzeichnis ist nicht beschreibbar (${dbVerzeichnis}): ${err.message}`,
     );
   }
 
-  if (!fs.existsSync(dbPath)) {
-    fs.closeSync(fs.openSync(dbPath, "a"));
+  if (!fs.existsSync(dbPfad)) {
+    fs.closeSync(fs.openSync(dbPfad, "a"));
   }
 
   try {
-    fs.accessSync(dbPath, fs.constants.W_OK);
+    fs.accessSync(dbPfad, fs.constants.W_OK);
   } catch (_err) {
     try {
-      fs.chmodSync(dbPath, 0o664);
-      fs.accessSync(dbPath, fs.constants.W_OK);
-    } catch (chmodErr) {
+      fs.chmodSync(dbPfad, 0o664);
+      fs.accessSync(dbPfad, fs.constants.W_OK);
+    } catch (chmodFehler) {
       throw new Error(
-        `Database file is not writable (${dbPath}). Check owner/permissions: ${chmodErr.message}`,
+        `Datenbank-Datei ist nicht beschreibbar (${dbPfad}). Pruefe Besitzer/Rechte: ${chmodFehler.message}`,
       );
     }
   }
 };
 
-ensureDbWritable();
+stelleBeschreibbareDbSicher();
 
 // Stellt eine Verbindung zur SQLite-Datenbank her.
-const db = new sqlite3.Database(dbPath, (err) => {
+const db = new sqlite3.Database(dbPfad, (err) => {
   if (err) {
-    console.error(pre, "Error opening database:", err.message);
+    console.error(praefixDb, "Fehler beim Oeffnen der Datenbank:", err.message);
   } else {
-    console.log(pre, `Connected to the SQLite database at ${dbPath}.`);
+    console.log(praefixDb, `Mit SQLite-Datenbank verbunden: ${dbPfad}.`);
   }
 });
 
@@ -79,11 +79,11 @@ const initDb = () => {
       db.run(createSql, (err) => {
         // Fehlerbehandlung beim Erstellen der Tabelle.
         if (err) {
-          console.error(pre, "Error creating table:", err.message);
+          console.error(praefixDb, "Fehler beim Erstellen der Tabelle:", err.message);
           reject(err);
           return;
         }
-        console.log(pre, "Table aircraft_history is ready");
+        console.log(praefixDb, "Tabelle aircraft_history ist bereit");
         resolve();
       });
     });
