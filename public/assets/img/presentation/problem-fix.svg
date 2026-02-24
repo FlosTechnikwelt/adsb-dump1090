@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Von Problem zu Loesung">
+  <rect width="900" height="520" fill="#0e1b2a"/>
+  <rect x="80" y="122" width="310" height="248" rx="16" fill="#3f1d26" stroke="#d96b6b" stroke-width="3"/>
+  <text x="236" y="182" text-anchor="middle" fill="#ffd8d8" font-size="32" font-family="Segoe UI, sans-serif">Problem</text>
+  <text x="236" y="232" text-anchor="middle" fill="#ffd8d8" font-size="22" font-family="Segoe UI, sans-serif">Fehler tritt auf</text>
+  <text x="236" y="266" text-anchor="middle" fill="#ffd8d8" font-size="22" font-family="Segoe UI, sans-serif">Anzeige instabil</text>
+  <rect x="510" y="122" width="310" height="248" rx="16" fill="#1e3f2d" stroke="#74d39a" stroke-width="3"/>
+  <text x="665" y="182" text-anchor="middle" fill="#dcffe9" font-size="32" font-family="Segoe UI, sans-serif">Fix</text>
+  <text x="665" y="232" text-anchor="middle" fill="#dcffe9" font-size="22" font-family="Segoe UI, sans-serif">Ursache erkannt</text>
+  <text x="665" y="266" text-anchor="middle" fill="#dcffe9" font-size="22" font-family="Segoe UI, sans-serif">Loesung eingebaut</text>
+  <text x="665" y="300" text-anchor="middle" fill="#dcffe9" font-size="22" font-family="Segoe UI, sans-serif">System stabil</text>
+  <line x1="390" y1="246" x2="510" y2="246" stroke="#ffcc33" stroke-width="6"/>
+  <polygon points="510,230 544,246 510,262" fill="#ffcc33"/>
+</svg>

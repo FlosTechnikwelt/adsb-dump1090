@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 //server.js
 //Dies ist der Hauptserver für die ADS-B Flugzeug-Tracker-Anwendung
 //Er initialisiert den Express-Server, lädt Konfigurationen, definiert API-Endpunkte
@@ -19,12 +19,17 @@ let konfiguration = {
 //Lädt die Konfiguration aus der 'config.json'-Datei
 //Wenn die Datei nicht gefunden wird, wird eine Warnung ausgegeben und es wird versucht, lokale Daten zu verwenden
 try {
-  const roheKonfiguration = fs.readFileSync(path.join(__dirname, "config.json"));
+  const roheKonfiguration = fs.readFileSync(
+    path.join(__dirname, "config.json"),
+  );
   konfiguration = JSON.parse(roheKonfiguration);
   console.log(praefixKonfig, "Konfiguration geladen");
 } catch (error) {
   //Fehlerbehandlung
-  console.warn(praefixKonfig, "config.json konnte nicht gelesen werden. Fehlt die Datei?");
+  console.warn(
+    praefixKonfig,
+    "config.json konnte nicht gelesen werden. Fehlt die Datei?",
+  );
 }
 
 const duplikatFensterMs = Number.isFinite(konfiguration.dedupeSeconds)
@@ -126,13 +131,16 @@ const speichereFlugzeugDaten = async (flugzeugListe) => {
   for (const flugzeug of flugzeugListe) {
     if (flugzeug.hex) {
       wendeFlugzeugMetaAn(flugzeug);
-      const zwischengespeicherteMeta = flugzeugMetaNachHex.get(flugzeug.hex) || {};
+      const zwischengespeicherteMeta =
+        flugzeugMetaNachHex.get(flugzeug.hex) || {};
 
       const zuletztGesehen = zuletztGespeichertUm.get(flugzeug.hex);
       const jetzt = Date.now();
       let flugzeugTyp = flugzeug.t || zwischengespeicherteMeta.type || null;
-      let hersteller = flugzeug.manufacturer || zwischengespeicherteMeta.manufacturer || null;
-      let fotoUrl = flugzeug.photo_url || zwischengespeicherteMeta.photo_url || null;
+      let hersteller =
+        flugzeug.manufacturer || zwischengespeicherteMeta.manufacturer || null;
+      let fotoUrl =
+        flugzeug.photo_url || zwischengespeicherteMeta.photo_url || null;
 
       if (zuletztGesehen && jetzt - zuletztGesehen < duplikatFensterMs) {
         flugzeug.t = flugzeugTyp;
@@ -181,7 +189,7 @@ const speichereFlugzeugDaten = async (flugzeugListe) => {
           //Fehlerbehandlung
           console.warn(
             praefixExpress,
-            `Fehler beim Abruf von hexdb.io fuer HEX ${flugzeug.hex}:`,
+            `Fehler beim Abruf von hexdb.io für HEX ${flugzeug.hex}:`,
             error.message,
           );
         }
@@ -214,6 +222,9 @@ const speichereFlugzeugDaten = async (flugzeugListe) => {
           //Herkunft?
           //Dauer?
           //Strecke?
+          //Airline?
+          //Alter des Flugzeugs?
+          //Typ des Flugzeugs (z.B. Passagier, Fracht, Privat)?
         ],
         function (err) {
           if (err) {
@@ -248,21 +259,31 @@ app.get("/api/aircraft", async (req, res) => {
       `Fehler beim Abruf der externen API (${konfiguration.apiUrl}):`,
       error.message,
     );
-    return res.status(500).send("Fehler beim Abrufen der Daten von der externen API.");
+    return res
+      .status(500)
+      .send("Fehler beim Abrufen der Daten von der externen API.");
   }
 
   if (data && data.aircraft) {
     try {
       await ladeFlugzeugMetaAusDb(data.aircraft);
     } catch (error) {
-      console.warn(praefixExpress, "Flugzeug-Metadaten konnten nicht aus der DB geladen werden:", error.message);
+      console.warn(
+        praefixExpress,
+        "Flugzeug-Metadaten konnten nicht aus der DB geladen werden:",
+        error.message,
+      );
     }
 
     data.aircraft.forEach(wendeFlugzeugMetaAn);
     res.json(data);
 
     speichereFlugzeugDaten(data.aircraft).catch((error) => {
-      console.error(praefixExpress, "Fehler bei Anreicherung/Speicherung von Flugzeugdaten:", error.message);
+      console.error(
+        praefixExpress,
+        "Fehler bei Anreicherung/Speicherung von Flugzeugdaten:",
+        error.message,
+      );
     });
   } else {
     res.json({ aircraft: [] });
@@ -285,7 +306,9 @@ app.get("/api/aircraft/current", async (req, res) => {
       `Fehler beim Abruf der externen API (${konfiguration.apiUrl}):`,
       error.message,
     );
-    return res.status(500).send("Fehler beim Abrufen der Daten von der externen API.");
+    return res
+      .status(500)
+      .send("Fehler beim Abrufen der Daten von der externen API.");
   }
 
   if (data && data.aircraft) {
@@ -461,21 +484,28 @@ const starteServer = async () => {
     // Initialisiert die Datenbank vor dem Start des Webservers.
     await initialisiereDb();
   } catch (error) {
-    console.error(praefixExpress, "Datenbank-Initialisierung fehlgeschlagen:", error.message);
+    console.error(
+      praefixExpress,
+      "Datenbank-Initialisierung fehlgeschlagen:",
+      error.message,
+    );
     process.exit(1);
   }
 
   app.listen(konfiguration.port, konfiguration.listenon, () => {
-    console.log(praefixExpress, `Server lauscht auf ${konfiguration.listenon}:${konfiguration.port}`);
+    console.log(
+      praefixExpress,
+      `Server lauscht auf ${konfiguration.listenon}:${konfiguration.port}`,
+    );
     console.log(praefixExpress, "DESY-ADSB Flight Tracker wurde gestartet.");
     if (konfiguration.apiUrl) {
-      console.log(praefixExpress, `API-Anfragen werden weitergeleitet an: ${konfiguration.apiUrl}`);
+      console.log(
+        praefixExpress,
+        `API-Anfragen werden weitergeleitet an: ${konfiguration.apiUrl}`,
+      );
       console.log(praefixExpress, "⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎ Bereit zum Start! ⌯✈︎ ⌯✈︎ ⌯✈︎ ⌯✈︎");
     } else {
-      console.error(
-        praefixExpress,
-        "Keine apiUrl konfiguriert",
-      );
+      console.error(praefixExpress, "Keine apiUrl konfiguriert");
     }
   });
 };

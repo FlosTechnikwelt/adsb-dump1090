@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Flugzeug sendet ADS-B Signal">
+  <rect width="900" height="520" fill="#0e1b2a"/>
+  <circle cx="170" cy="340" r="14" fill="#ffcc33"/>
+  <circle cx="170" cy="340" r="64" fill="none" stroke="#ffcc33" stroke-width="4" opacity="0.65"/>
+  <circle cx="170" cy="340" r="108" fill="none" stroke="#ffcc33" stroke-width="3" opacity="0.45"/>
+  <circle cx="170" cy="340" r="152" fill="none" stroke="#ffcc33" stroke-width="2" opacity="0.28"/>
+  <path d="M210 300 L360 220 L390 240 L274 312 L420 348 L438 376 L280 332 L256 436 L228 418 L242 322 Z" fill="#eef4ff"/>
+  <path d="M468 138 h350 v74 h-350 z" fill="#16304b" stroke="#8aa7c9"/>
+  <text x="486" y="185" fill="#eef4ff" font-size="34" font-family="Segoe UI, sans-serif">ADS-B Signal</text>
+  <path d="M468 234 h350 v60 h-350 z" fill="#13273f" stroke="#8aa7c9"/>
+  <text x="486" y="273" fill="#b7c6d9" font-size="26" font-family="Segoe UI, sans-serif">Position, Hoehe, Geschwindigkeit</text>
+  <path d="M468 318 h350 v60 h-350 z" fill="#13273f" stroke="#8aa7c9"/>
+  <text x="486" y="357" fill="#b7c6d9" font-size="26" font-family="Segoe UI, sans-serif">offen, regelmaessig, fuer viele Empfaenger</text>
+</svg>

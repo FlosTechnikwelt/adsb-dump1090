@@ -49,7 +49,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const sichtungenKontext = document
         .getElementById("sightings-chart")
         .getContext("2d");
-      const beschriftungen = statistiken.sightingsPerHour.map((s) => new Date(s.hour));
+      const beschriftungen = statistiken.sightingsPerHour.map(
+        (s) => new Date(s.hour),
+      );
       const daten = statistiken.sightingsPerHour.map((s) => s.count);
 
       if (sichtungenDiagramm) sichtungenDiagramm.destroy(); // Zerstört ein bestehendes Diagramm, um es neu zu zeichnen.
@@ -188,7 +190,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const herstellerKontext = document
         .getElementById("manufacturer-chart")
         .getContext("2d");
-      const beschriftungen = statistiken.topManufacturers.map((m) => m.manufacturer);
+      const beschriftungen = statistiken.topManufacturers.map(
+        (m) => m.manufacturer,
+      );
       const daten = statistiken.topManufacturers.map((m) => m.count);
 
       if (herstellerDiagramm) herstellerDiagramm.destroy(); // Zerstört ein bestehendes Diagramm.

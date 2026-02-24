@@ -1,4 +1,5 @@
 <!-- README for ADS-B Flugzeug-Tracker (adsb-dump1090) -->
+
 # ADS‑B Flugzeug‑Tracker (adsb-dump1090)
 
 ## Projektübersicht
@@ -33,7 +34,6 @@
 
 - **Datei:** `stats.db` (SQLite, im Projektverzeichnis).
 - **Tabelle:** `aircraft_history`
-
   - `id` INTEGER PRIMARY KEY AUTOINCREMENT
   - `hex` TEXT NOT NULL
   - `flight` TEXT
@@ -126,6 +126,7 @@ npx nodemon server.js
 ---
 
 Wenn du möchtest, committe ich die Datei `README.md` in dein Repo oder passe die README an (z. B. zusätzliche Beispiele, Diagramme oder API‑Antwort‑Samples).
+
 # DESY Flugzeug-Tracker
 
 Dies ist ein Webanwendung zur Verfolgung und Analyse von Flugzeugdaten, die von einem ADS-B-Empfänger (z.B. dump1090) stammen. Die Anwendung visualisiert Flugbewegungen auf einer Live-Karte, bietet detaillierte Statistiken und ermöglicht die Suche nach vergangenen Flügen.

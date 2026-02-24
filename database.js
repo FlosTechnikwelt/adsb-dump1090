@@ -79,7 +79,11 @@ const initDb = () => {
       db.run(createSql, (err) => {
         // Fehlerbehandlung beim Erstellen der Tabelle.
         if (err) {
-          console.error(praefixDb, "Fehler beim Erstellen der Tabelle:", err.message);
+          console.error(
+            praefixDb,
+            "Fehler beim Erstellen der Tabelle:",
+            err.message,
+          );
           reject(err);
           return;
         }

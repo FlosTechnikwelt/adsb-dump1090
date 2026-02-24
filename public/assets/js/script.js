@@ -53,7 +53,9 @@ document.addEventListener("DOMContentLoaded", () => {
           const hoeheInMetern = flugzeug.alt_baro
             ? Math.round(flugzeug.alt_baro * 0.3048)
             : 0;
-          const geschwindigkeitInKmh = flugzeug.gs ? Math.round(flugzeug.gs * 1.852) : 0;
+          const geschwindigkeitInKmh = flugzeug.gs
+            ? Math.round(flugzeug.gs * 1.852)
+            : 0;
 
           // Erstellt den Inhalt für das Popup-Fenster des Markers.
           const popupInhalt = `
@@ -70,7 +72,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
           if (flugzeugMarker[flugzeug.hex]) {
             // Wenn der Marker für dieses Flugzeug bereits existiert, wird er aktualisiert.
-            flugzeugMarker[flugzeug.hex].setLatLng([flugzeug.lat, flugzeug.lon]);
+            flugzeugMarker[flugzeug.hex].setLatLng([
+              flugzeug.lat,
+              flugzeug.lon,
+            ]);
             flugzeugMarker[flugzeug.hex].setRotationAngle(flugzeug.track || 0);
             flugzeugMarker[flugzeug.hex].setPopupContent(popupInhalt);
           } else {
