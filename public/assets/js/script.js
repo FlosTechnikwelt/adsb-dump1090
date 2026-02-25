@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         ${flugzeug.photo_url ? `<img src="${flugzeug.photo_url}" alt="Flugzeugfoto" style="width:100%;height:auto;border-radius:5px;"><p style="font-size: 0.8rem; text-align: right; margin: 0;">Bild: <a href="https://www.planespotters.net/" target="_blank">Planespotters.net</a></p>` : ""}
                         <table class="popup-table">
                             <tr><td>Flug:</td><td>${flugzeug.flight ? flugzeug.flight.trim() : "k. A."}</td></tr>
-                            <tr><td>Hoehe:</td><td>${flugzeug.alt_baro ? `<span title="${hoeheInMetern} m">${flugzeug.alt_baro} ft</span>` : "k. A."}</td></tr>
+                            <tr><td>Höhe:</td><td>${flugzeug.alt_baro ? `<span title="${hoeheInMetern} m">${flugzeug.alt_baro} ft</span>` : "k. A."}</td></tr>
                             <tr><td>Geschwindigkeit:</td><td>${flugzeug.gs ? `<span title="${geschwindigkeitInKmh} km/h">${flugzeug.gs.toFixed(1)} kts</span>` : "k. A."}</td></tr>
                             <tr><td>Typ:</td><td>${flugzeug.t || "k. A."}</td></tr>
                             <tr><td>Hersteller:</td><td>${flugzeug.manufacturer || "k. A."}</td></tr>

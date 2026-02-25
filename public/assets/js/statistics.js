@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
           ],
         },
         options: {
-          indexAxis: "y", // Horizontale Balken.
+          indexAxis: "y", //Horizontale Balken
           scales: {
             x: {
               beginAtZero: true,
@@ -136,7 +136,7 @@ document.addEventListener("DOMContentLoaded", () => {
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              display: false, // Legende ausblenden.
+              display: false, //Legende ausblenden
             },
           },
         },
@@ -185,7 +185,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    // Erstellt oder aktualisiert das Tortendiagramm für die "Top 5 Hersteller".
+    // Erstellt oder aktualisiert das Tortendiagramm für die "Top 5 Hersteller"
     if (statistiken.topManufacturers) {
       const herstellerKontext = document
         .getElementById("manufacturer-chart")

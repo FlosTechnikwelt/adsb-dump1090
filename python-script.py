@@ -6,13 +6,14 @@ from PIL import Image, ImageDraw, ImageFont
 import time
 from waveshare_epd import epd2in7_V2
 
-# --- API, Fonts & Display ---
+#API und Fonts
 URL = "http://127.0.0.1:3001/api/aircraft/current"
 REFRESH_INTERVAL = 10
 FONT_GROSS = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', 22)
 FONT_KLEIN = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 14)
 
 
+#API Daten laden
 def get_api_data():
     """API laden"""
     try:
@@ -25,21 +26,22 @@ def get_api_data():
         return None
 
 
+#Bild drhen
 def rotate_and_show(epd, img):
     """Bild drehen und anzeigen"""
     img = img.rotate(90, expand=True)
     epd.display(epd.getbuffer(img))
 
-
+# Liste mit Flugezugen anzeigen
 def draw_aircraft_list(epd, aircraft):
     """Liste der Flugzeuge zeichnen"""
     img = Image.new('1', (epd.height, epd.width), 255)
     draw = ImageDraw.Draw(img)
 
     if aircraft is None:
-        # Display 404 error
-        text_404 = "404"
-        # Use getbbox for modern Pillow versions
+        #Display 404 error
+        text_404 = "404 Not found"
+        #getbbox
         left, top, right, bottom = FONT_GROSS.getbbox(text_404)
         text_width = right - left
         text_height = bottom - top
@@ -47,7 +49,7 @@ def draw_aircraft_list(epd, aircraft):
         y = (epd.width - text_height) / 2
         draw.text((x, y), text_404, font=FONT_GROSS, fill=0)
     else:
-        now = time.strftime("%H:%M:%S")
+        now = time.strftime("%H:%M:%S") # Optional, evt. doch anzeigen?
         draw.text((10, 5), f"Flugdaten Live", font=FONT_GROSS, fill=0)
         draw.line((10, 30, epd.height - 10, 30), fill=0)
 
@@ -55,7 +57,7 @@ def draw_aircraft_list(epd, aircraft):
         max_display = 5
 
         if not aircraft:
-            draw.text((10, y_offset), "Keine Flugzeuge in Sicht.", font=FONT_KLEIN, fill=0)
+            draw.text((10, y_offset), "Aktuell sehe ich keine Flugezeuge ;)", font=FONT_KLEIN, fill=0) # Keine Flugzeuge
         else:
             for i, ac in enumerate(aircraft[:max_display]):
                 flight = ac.get("flight", "N/A").strip()
@@ -71,10 +73,7 @@ def draw_aircraft_list(epd, aircraft):
 
     rotate_and_show(epd, img)
 
-
-# ==========================
-#   HAUPTPROGRAMM
-# ==========================
+#HAUPTPROGRAMM
 if __name__ == "__main__":
     try:
         epd = epd2in7_V2.EPD()
