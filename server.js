@@ -32,9 +32,12 @@ try {
   );
 }
 
-const duplikatFensterMs = Number.isFinite(konfiguration.dedupeSeconds)
-  ? Math.max(0, konfiguration.dedupeSeconds) * 1000
-  : 60 * 1000;
+const speicherIntervallSekundenRoh =
+  konfiguration.positionSaveIntervalSeconds ?? konfiguration.dedupeSeconds;
+const speicherIntervallSekunden = Number(speicherIntervallSekundenRoh);
+const duplikatFensterMs = Number.isFinite(speicherIntervallSekunden)
+  ? Math.max(0, speicherIntervallSekunden) * 1000
+  : 5 * 1000;
 const zuletztGespeichertUm = new Map();
 const flugzeugMetaNachHex = new Map();
 const dbAlle = (sqlAnweisung, parameter = []) =>
@@ -498,6 +501,10 @@ const starteServer = async () => {
       `Server lauscht auf ${konfiguration.listenon}:${konfiguration.port}`,
     );
     console.log(praefixExpress, "DESY-ADSB Flight Tracker wurde gestartet.");
+    console.log(
+      praefixExpress,
+      `Positionsdaten werden alle ${duplikatFensterMs / 1000} Sekunden pro HEX gespeichert.`,
+    );
     if (konfiguration.apiUrl) {
       console.log(
         praefixExpress,

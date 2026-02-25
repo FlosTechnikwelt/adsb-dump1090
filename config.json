@@ -1,5 +1,6 @@
 {
   "apiUrl": "http://131.169.137.134:8080/data/aircraft.json",
+  "positionSaveIntervalSeconds": 1,
   "port": "3001",
   "listenon": "0.0.0.0",
   "prefixdb": "[DESY-ADSB DATABASE]: ",

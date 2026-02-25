@@ -74,6 +74,7 @@
 
 - `config.json` (Beispiele):
   - `apiUrl`: URL zur externen Datenquelle (z. B. Dump1090 JSON).
+  - `positionSaveIntervalSeconds`: Speicherintervall fuer Positionsdaten pro Flugzeug (Standard: `5`).
   - `prefixexpress`, `prefixdb`, `prefixconfig`: String‑Prefixes für Logs.
 - Hinweis: Für Produktion sensible Einstellungen besser per Umgebungsvariablen verwalten.
 
@@ -176,6 +177,7 @@ Um das Projekt lokal auszuführen, folgen Sie diesen Schritten:
     ```json
     {
       "apiUrl": "http://localhost:8080/adsb.json",
+      "positionSaveIntervalSeconds": 5,
       "prefixexpress": "[WEBSERVE]: ",
       "prefixconfig": "[CONFIG]: ",
       "prefixdb": "[DB]: "
