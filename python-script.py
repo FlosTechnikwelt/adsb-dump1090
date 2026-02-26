@@ -49,15 +49,13 @@ def draw_aircraft_list(epd, aircraft):
         y = (epd.width - text_height) / 2
         draw.text((x, y), text_404, font=FONT_GROSS, fill=0)
     else:
-        now = time.strftime("%H:%M:%S") # Optional, evt. doch anzeigen?
         draw.text((10, 5), f"Flugdaten Live", font=FONT_GROSS, fill=0)
         draw.line((10, 30, epd.height - 10, 30), fill=0)
-
         y_offset = 40
         max_display = 5
 
         if not aircraft:
-            draw.text((10, y_offset), "Aktuell sehe ich keine Flugezeuge ;)", font=FONT_KLEIN, fill=0) # Keine Flugzeuge
+            draw.text((10, y_offset), "Aktuell sehe ich keine Flugezeuge ;)", font=FONT_KLEIN, fill=0) 
         else:
             for i, ac in enumerate(aircraft[:max_display]):
                 flight = ac.get("flight", "N/A").strip()

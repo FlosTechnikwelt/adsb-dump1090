@@ -293,6 +293,9 @@ app.get("/api/aircraft", async (req, res) => {
   }
 });
 
+//**
+// /api/aircraft/current
+//  */
 //API-Endpunkt zum Abrufen der aktuell sichtbaren Flugzeuge mit reduzierten Daten
 //Gibt nur Flugnummer, Höhe und Geschwindigkeit zurück
 app.get("/api/aircraft/current", async (req, res) => {
